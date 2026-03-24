@@ -1,0 +1,1 @@
+# The Plant-to-Market Smart Farm Platform is a web- and mobile-based system designed to help farmers in Rwanda manage their entire farming cycle — from planting to selling crops — efficiently and profitably. It integrates real-time environmental data, AI-powered insights, disease detection, and a marketplace to maximize crop yield, reduce losses, and optimize revenue.
