@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const db = require('./models');
+const { body, validationResult } = require('express-validator');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
