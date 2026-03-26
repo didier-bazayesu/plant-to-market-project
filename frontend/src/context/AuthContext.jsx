@@ -2,34 +2,47 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+// ─── MOCK USERS ───────────────────────────────────────────────
+const MOCK_USERS = [
+  {
+    id: 1,
+    name: 'Didier Bazayesu',
+    email: 'didierbazayesu@gmail.com',
+    password: 'didier123',
+    phone: '+250 788 123 456',
+    district: 'Musanze',
+    role: 'farmer',
+  },
+  {
+    id: 2,
+    name: 'Admin User',
+    email: 'admin@farm.rw',
+    password: 'admin123',
+    phone: '+250 788 000 000',
+    district: 'Gasabo',
+    role: 'admin',
+  },
+];
+// ─────────────────────────────────────────────────────────────
+
 export const AuthProvider = ({ children }) => {
   const [farmer, setFarmer] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // --- HARDCODED MOCK DATA ---
-  const MOCK_FARMER = {
-    id: 1,
-    name: 'didier bazayesu',
-    email: 'didierbazayesu@gmail.com',
-    phone: '+250 788 123 456',
-    district: 'Musanze',
-    role: 'farmer',
-  };
-
-  const MOCK_CREDENTIALS = {
-    email: 'didierbazayesu@gmail.com',
-    password: 'didier123',
-  };
-
   useEffect(() => {
     const initializeAuth = async () => {
       if (token) {
-        // Try to fetch real data, if it fails, fallback to Mock
+        // Try real backend first
         const success = await fetchMe();
         if (!success) {
-          console.log("Backend offline: Using Mock Farmer session");
-          setFarmer(MOCK_FARMER);
+          // Fallback — restore farmer from localStorage
+          const saved = localStorage.getItem('farmer');
+          if (saved) {
+            setFarmer(JSON.parse(saved));
+          } else {
+            logout();
+          }
         }
       }
       setLoading(false);
@@ -48,13 +61,13 @@ export const AuthProvider = ({ children }) => {
       setFarmer(data);
       return true;
     } catch {
-      return false; // Silently fail to trigger fallback
+      return false;
     }
   };
 
   const login = async (email, password) => {
+    // 1. Try real backend
     try {
-      // 1. Attempt Real Login
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,48 +77,78 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('token', data.token);
+        localStorage.setItem('farmer', JSON.stringify(data.farmer));
         setToken(data.token);
         setFarmer(data.farmer);
-        return;
+        return data.farmer; // ✅ return for role-based redirect
       }
-    } catch (err) {
-      console.warn("Auth API error: Switching to Mock Login check.");
+    } catch {
+      console.warn('Backend offline — using mock login');
     }
 
-    // 2. FALLBACK: Check Hardcoded Credentials
-    if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
-      const mockToken = "mock-jwt-token-12345";
+    // 2. Fallback — mock login
+    await new Promise((res) => setTimeout(res, 800)); // simulate delay
+
+    const found = MOCK_USERS.find(
+      u => u.email === email && u.password === password
+    );
+
+    if (found) {
+      const { password: _, ...farmerData } = found; // strip password
+      const mockToken = 'mock-jwt-token-' + found.id;
       localStorage.setItem('token', mockToken);
+      localStorage.setItem('farmer', JSON.stringify(farmerData));
       setToken(mockToken);
-      setFarmer(MOCK_FARMER);
-    } else {
-      throw new Error('Invalid email or password');
+      setFarmer(farmerData);
+      return farmerData; // ✅ return for role-based redirect
     }
+
+    throw new Error('Invalid email or password');
   };
 
   const register = async (formData) => {
+    // 1. Try real backend
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setFarmer(data.farmer);
+
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('farmer', JSON.stringify(data.farmer));
+        setToken(data.token);
+        setFarmer(data.farmer);
+        return data.farmer;
+      }
     } catch {
-      // Mock registration for testing
-      const mockToken = "mock-jwt-token-12345";
-      localStorage.setItem('token', mockToken);
-      setToken(mockToken);
-      setFarmer({ ...formData, id: Date.now(), role: 'farmer' });
+      console.warn('Backend offline — using mock register');
     }
+
+    // 2. Fallback — mock register
+    await new Promise((res) => setTimeout(res, 800));
+
+    const newFarmer = {
+      id: Date.now(),
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      district: formData.district,
+      role: 'farmer',
+    };
+    const mockToken = 'mock-jwt-token-' + newFarmer.id;
+    localStorage.setItem('token', mockToken);
+    localStorage.setItem('farmer', JSON.stringify(newFarmer));
+    setToken(mockToken);
+    setFarmer(newFarmer);
+    return newFarmer;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('farmer');
     setToken(null);
     setFarmer(null);
   };
