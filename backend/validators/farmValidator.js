@@ -1,10 +1,7 @@
-// validators/farmValidator.js
 const { body } = require('express-validator');
 
 const createFarmValidation = [
-  body('farmer_id')
-    .isInt()
-    .withMessage('farmer_id must be an integer'),
+  // ✅ Remove farmer_id — comes from JWT token now
   body('name')
     .isString()
     .notEmpty()
@@ -16,10 +13,14 @@ const createFarmValidation = [
     .isString()
     .notEmpty()
     .withMessage('Location is required'),
-  body('soil_type')
+  body('soilType')       // ✅ camelCase to match model
     .optional()
     .isString()
-    .withMessage('Soil type must be text')
+    .withMessage('Soil type must be text'),
+  body('irrigation')
+    .optional()
+    .isString()
+    .withMessage('Irrigation must be text'),
 ];
 
 module.exports = { createFarmValidation };
