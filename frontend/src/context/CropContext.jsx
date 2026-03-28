@@ -1,109 +1,126 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const CropContext = createContext(null);
 
-// ─── HARDCODED INITIAL CROPS ──────────────────────────────────
-const initialCrops = [
-  {
-    id: 1,
-    name: 'Maize',
-    variety: 'Hybrid H624',
-    farm: 'Kagera Valley Farm',
-    location: 'Musanze',
-    health: 'Healthy',
-    progress: 65,
-    plantingDate: '2025-01-10',
-    harvestDate: '2025-04-10',
-    lastWatered: 'Today',
-    size: '1.5 ha',
-    img: 'https://images.unsplash.com/photo-1601472544916-85b66e160a7c?q=80&w=400',
-  },
-  {
-    id: 2,
-    name: 'Potato',
-    variety: 'Kinigi Red',
-    farm: 'Kagera Valley Farm',
-    location: 'Musanze',
-    health: 'At Risk',
-    progress: 80,
-    plantingDate: '2024-12-01',
-    harvestDate: '2025-03-01',
-    lastWatered: 'Yesterday',
-    size: '2.0 ha',
-    img: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=400',
-  },
-  {
-    id: 3,
-    name: 'Beans',
-    variety: 'RWR 2245',
-    farm: 'Bugesera East Fields',
-    location: 'Bugesera',
-    health: 'Healthy',
-    progress: 30,
-    plantingDate: '2025-02-01',
-    harvestDate: '2025-05-01',
-    lastWatered: '2 days ago',
-    size: '1.0 ha',
-    img: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?q=80&w=400',
-  },
-  {
-    id: 4,
-    name: 'Rice',
-    variety: 'Jasmine 85',
-    farm: 'Bugesera East Fields',
-    location: 'Bugesera',
-    health: 'Healthy',
-    progress: 50,
-    plantingDate: '2025-01-20',
-    harvestDate: '2025-06-01',
-    lastWatered: 'Today',
-    size: '3.0 ha',
-    img: 'https://images.unsplash.com/photo-1536304993881-ff86e0c9ef1d?q=80&w=400',
-  },
-  {
-    id: 5,
-    name: 'Sorghum',
-    variety: 'SARO 5',
-    farm: 'Huye Hillside Farm',
-    location: 'Huye',
-    health: 'At Risk',
-    progress: 45,
-    plantingDate: '2025-01-05',
-    harvestDate: '2025-05-15',
-    lastWatered: '3 days ago',
-    size: '1.3 ha',
-    img: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=400',
-  },
-];
-// ─────────────────────────────────────────────────────────────
-
 export const CropProvider = ({ children }) => {
-  const [crops, setCrops] = useState(initialCrops);
+  const { token, loading: authLoading } = useAuth();
+  const [crops, setCrops] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const addCrop = (newCrop) => {
-    setCrops((prev) => [
-      ...prev,
-      {
-        ...newCrop,
-        id: Date.now(),
-        health: 'Healthy',
-        progress: 0,
-        lastWatered: 'Not yet',
-        img: newCrop.img || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=400',
-      },
-    ]);
+  useEffect(() => {
+  if (!authLoading && token) {
+    fetchCrops();
+  } else if (!authLoading && !token) {
+    setLoading(false);
+  }
+  }, [token, authLoading]);
+
+  // ─── MAP BACKEND FIELDS TO FRONTEND FIELDS ────────────────
+  const mapCrop = (c) => ({
+    id: c.id,
+    name: c.cropType,
+    variety: c.variety || '—',
+    farm: c.farm?.name || '—',
+    location: c.farm?.location || '—',
+    health: c.health || 'Healthy',
+    progress: c.progress || 0,
+    plantingDate: c.plantingDate,
+    harvestDate: c.harvestDate || null,
+    lastWatered: c.lastWatered || 'Not yet',
+    size: c.size ? `${c.size} ha` : '—',
+    img: c.img || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=400',
+    status: c.status,
+    farm_id: c.farm_id,
+  });
+
+  // ─── FETCH ALL CROPS ──────────────────────────────────────
+  const fetchCrops = async () => {
+    try {
+      const res = await fetch('/api/crops', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch crops');
+      const data = await res.json();
+      setCrops(data.crops.map(mapCrop));
+    } catch (err) {
+      console.error('fetchCrops error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateCrop = (id, updates) => {
-    setCrops((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+  // ─── ADD CROP ─────────────────────────────────────────────
+  const addCrop = async (newCrop) => {
+    try {
+      const res = await fetch('/api/crops', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          cropType: newCrop.name,
+          plantingDate: newCrop.plantingDate,
+          farm_id: newCrop.farm_id,
+          status: 'planted',
+        })
+      });
+      if (!res.ok) throw new Error('Failed to add crop');
+      await fetchCrops(); // refresh from backend
+    } catch (err) {
+      console.error('addCrop error:', err);
+      // ✅ Fallback — add locally if backend fails
+      setCrops((prev) => [
+        ...prev,
+        {
+          ...newCrop,
+          id: Date.now(),
+          health: 'Healthy',
+          progress: 0,
+          lastWatered: 'Not yet',
+          img: newCrop.img || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=400',
+        },
+      ]);
+    }
   };
 
-  const deleteCrop = (id) => {
-    setCrops((prev) => prev.filter((c) => c.id !== id));
+  // ─── UPDATE CROP ──────────────────────────────────────────
+  const updateCrop = async (id, updates) => {
+    try {
+      await fetch(`/api/crops/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      });
+      setCrops((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+    } catch (err) {
+      console.error('updateCrop error:', err);
+      // Fallback — update locally
+      setCrops((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+    }
+  };
+
+  // ─── DELETE CROP ──────────────────────────────────────────
+  const deleteCrop = async (id) => {
+    try {
+      await fetch(`/api/crops/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCrops((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error('deleteCrop error:', err);
+      // Fallback — delete locally
+      setCrops((prev) => prev.filter((c) => c.id !== id));
+    }
   };
 
   return (
-    <CropContext.Provider value={{ crops, addCrop, updateCrop, deleteCrop }}>
+    <CropContext.Provider value={{ crops, loading, addCrop, updateCrop, deleteCrop, fetchCrops }}>
       {children}
     </CropContext.Provider>
   );
