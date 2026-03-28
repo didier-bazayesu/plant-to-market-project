@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await fetch('/api/users/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return false;
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     // 1. Try real backend
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     // 1. Try real backend
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
