@@ -10,22 +10,25 @@ import HomeFarm from "./pages/HomeFarm";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Farm from "./pages/Farm";
-import Crops from "./pages/Crops";
 import Activity from "./pages/Activities";
+import Crops from "./pages/Crops";
 import Farmers from "./pages/Farmers";
 import FarmerDashboard from "./pages/farmer/Dashboard";
+import FarmList from "./pages/farmer/FarmList";
+import FarmDetail from "./pages/farmer/FarmDetail";
+import CropDetail from "./pages/farmer/CropDetatil";
+import AdminDashboard from "./pages/admin/Dashboard";
 
 import { AuthProvider } from './context/AuthContext';
 import { CropProvider } from './context/CropContext';
+import { FarmProvider } from './context/FarmContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import AdminDashboard from "./pages/admin/Dashboard";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      {/* ── PUBLIC routes ── */}
+      {/* ── PUBLIC ── */}
       <Route path="/" element={<Layout />}>
         <Route index element={<HomeFarm />} />
         <Route path="about" element={<About />} />
@@ -33,7 +36,7 @@ const router = createBrowserRouter(
         <Route path="register" element={<Register />} />
       </Route>
 
-      {/* ── FARMER protected routes ── */}
+      {/* ── FARMER PROTECTED ── */}
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />
@@ -41,11 +44,13 @@ const router = createBrowserRouter(
       }>
         <Route path="dashboard" element={<FarmerDashboard />} />
         <Route path="activities" element={<Activity />} />
-        <Route path="farms" element={<Farm />} />
-        <Route path="crops" element={<Crops />} />
+        <Route path="my-farms" element={<FarmList />} />
+        <Route path="my-farms/:farmId" element={<FarmDetail />} />
+        <Route path="my-farms/:farmId/crops/:cropId" element={<CropDetail />} />
+        <Route path="my-crops" element={<Crops />} />
       </Route>
 
-      {/* ── ADMIN only routes ── */}
+      {/* ── ADMIN PROTECTED ── */}
       <Route path="/admin" element={
         <AdminRoute>
           <Layout />
@@ -61,9 +66,11 @@ const router = createBrowserRouter(
 function App() {
   return (
     <AuthProvider>
-      <CropProvider>
-        <RouterProvider router={router} />
-      </CropProvider>
+      <FarmProvider>
+        <CropProvider>
+          <RouterProvider router={router} />
+        </CropProvider>
+      </FarmProvider>
     </AuthProvider>
   );
 }

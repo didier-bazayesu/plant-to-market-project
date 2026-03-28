@@ -3,32 +3,29 @@ import { useCrops } from '../context/CropContext';
 import {
   Sprout, MapPin, Droplets, ArrowRight,
   Search, Filter, TrendingUp, AlertTriangle,
-  CheckCircle2, Clock, Layers
+  CheckCircle2, Clock, Layers, Trash2, X
 } from 'lucide-react';
 
-// ─── FILTER OPTIONS ───────────────────────────────────────────
 const HEALTH_FILTERS = ['All', 'Healthy', 'At Risk'];
-const FARM_FILTERS = [
-  'All',
-  'Kagera Valley Farm',
-  'Bugesera East Fields',
-  'Huye Hillside Farm'
-];
 
 const Crops = () => {
-  const { crops } = useCrops();
+  const { crops, deleteCrop } = useCrops();
   const [search, setSearch] = useState('');
   const [healthFilter, setHealthFilter] = useState('All');
   const [farmFilter, setFarmFilter] = useState('All');
   const [selectedCrop, setSelectedCrop] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // ─── STATS ──────────────────────────────────────────────────
+  // ─── DYNAMIC FARM FILTERS ────────────────────────────────
+  const FARM_FILTERS = ['All', ...new Set(crops.map(c => c.farm).filter(Boolean))];
+
+  // ─── STATS ───────────────────────────────────────────────
   const total = crops.length;
   const healthy = crops.filter(c => c.health === 'Healthy').length;
   const atRisk = crops.filter(c => c.health === 'At Risk').length;
   const readyToHarvest = crops.filter(c => c.progress >= 80).length;
 
-  // ─── FILTERED CROPS ─────────────────────────────────────────
+  // ─── FILTERED CROPS ──────────────────────────────────────
   const filtered = crops.filter((c) => {
     const matchSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,6 +35,18 @@ const Crops = () => {
     const matchFarm = farmFilter === 'All' || c.farm === farmFilter;
     return matchSearch && matchHealth && matchFarm;
   });
+
+  // ─── DELETE HANDLERS ─────────────────────────────────────
+  const handleDeleteClick = (e, id) => {
+    e.stopPropagation();
+    setConfirmDelete(id);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteCrop(confirmDelete);
+    if (selectedCrop?.id === confirmDelete) setSelectedCrop(null);
+    setConfirmDelete(null);
+  };
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20">
@@ -112,7 +121,7 @@ const Crops = () => {
 
           <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-          {/* Farm filter */}
+          {/* Farm filter — dynamic */}
           <div className="flex gap-2 flex-wrap">
             {FARM_FILTERS.map((f) => (
               <button
@@ -132,7 +141,6 @@ const Crops = () => {
 
         {/* CROPS GRID + DETAIL */}
         <div className="space-y-6">
-
           {filtered.length === 0 ? (
             <div className="bg-white rounded-[2.5rem] p-16 text-center border border-gray-100 shadow-sm">
               <Sprout size={40} className="text-gray-200 mx-auto mb-4" />
@@ -172,6 +180,14 @@ const Crops = () => {
                       }`}>
                         {crop.health}
                       </span>
+
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => handleDeleteClick(e, crop.id)}
+                        className="absolute top-3 left-3 bg-white/90 hover:bg-red-50 p-2 rounded-xl transition-all opacity-0 group-hover:opacity-100 hover:text-red-500 text-gray-400"
+                      >
+                        <Trash2 size={14} />
+                      </button>
 
                       {/* Progress pill */}
                       <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-1.5 flex items-center gap-2">
@@ -219,7 +235,7 @@ const Crops = () => {
                 ))}
               </div>
 
-              {/* DETAIL ROW — selected crop */}
+              {/* DETAIL ROW */}
               {selectedCrop && (
                 <div className="bg-white rounded-[2rem] border border-green-100 shadow-sm p-6 md:p-8">
                   <div className="flex flex-col md:flex-row gap-8">
@@ -242,13 +258,28 @@ const Crops = () => {
                             {selectedCrop.variety}
                           </p>
                         </div>
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                          selectedCrop.health === 'Healthy'
-                            ? 'bg-green-50 text-green-600 border-green-100'
-                            : 'bg-red-50 text-red-500 border-red-100'
-                        }`}>
-                          {selectedCrop.health}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                            selectedCrop.health === 'Healthy'
+                              ? 'bg-green-50 text-green-600 border-green-100'
+                              : 'bg-red-50 text-red-500 border-red-100'
+                          }`}>
+                            {selectedCrop.health}
+                          </span>
+                          {/* Delete from detail panel */}
+                          <button
+                            onClick={(e) => handleDeleteClick(e, selectedCrop.id)}
+                            className="p-2 hover:bg-red-50 rounded-xl transition-all text-gray-300 hover:text-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => setSelectedCrop(null)}
+                            className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-300"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Progress bar */}
@@ -312,6 +343,38 @@ const Crops = () => {
           )}
         </div>
       </div>
+
+      {/* CONFIRM DELETE MODAL */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl">
+            <div className="bg-red-50 w-14 h-14 rounded-3xl flex items-center justify-center mx-auto mb-5">
+              <Trash2 className="text-red-500" size={24} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 text-center mb-2">
+              Delete Crop?
+            </h3>
+            <p className="text-sm text-gray-400 font-medium text-center mb-6">
+              This action cannot be undone. The crop will be permanently removed from your farm.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-4 rounded-2xl border-2 border-gray-100 font-black text-gray-500 hover:bg-gray-50 transition-all text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black text-sm transition-all"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
