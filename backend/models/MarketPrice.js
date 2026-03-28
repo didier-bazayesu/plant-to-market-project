@@ -1,4 +1,3 @@
-// models/MarketPrice.js
 module.exports = (sequelize, DataTypes) => {
   const MarketPrice = sequelize.define('MarketPrice', {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
