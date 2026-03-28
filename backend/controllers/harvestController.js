@@ -10,6 +10,15 @@ exports.createHarvest = async (req, res) => {
 };
 
 exports.getHarvests = async (req, res) => {
-  const harvests = await db.Harvest.findAll({ include: db.Crop });
-  res.json(harvests);
+  try {
+    const harvests = await db.Harvest.findAll({
+      include: [
+        { model: db.Crop, as: 'crop' } // ✅ must match Harvest.belongsTo(Crop, { as: 'crop' })
+      ]
+    });
+    res.json({ success: true, harvests });
+  } catch (err) {
+    console.error('[ERROR LOG]:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
