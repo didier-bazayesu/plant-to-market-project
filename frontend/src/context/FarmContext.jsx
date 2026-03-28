@@ -1,114 +1,139 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 const FarmContext = createContext(null);
 
-// ─── HARDCODED INITIAL FARMS ──────────────────────────────────
-const initialFarms = [
-  {
-    id: 1,
-    name: 'Kagera Valley Farm',
-    district: 'Musanze',
-    location: 'Kagera Sector, Musanze',
-    size: 4.5,
-    soilType: 'Loamy',
-    status: 'Active',
-    irrigation: 'Manual',
-    img: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?q=80&w=600',
-    createdAt: '2025-01-10',
-    plots: [
-      { id: 1, name: 'Plot A', size: 1.5, status: 'Growing' },
-      { id: 2, name: 'Plot B', size: 2.0, status: 'Harvesting' },
-      { id: 3, name: 'Plot C', size: 1.0, status: 'Planting' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Bugesera East Fields',
-    district: 'Bugesera',
-    location: 'Ntarama Sector, Bugesera',
-    size: 6.0,
-    soilType: 'Clay',
-    status: 'Active',
-    irrigation: 'Drip',
-    img: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=600',
-    createdAt: '2025-01-15',
-    plots: [
-      { id: 1, name: 'Plot A', size: 3.0, status: 'Growing' },
-      { id: 2, name: 'Plot B', size: 3.0, status: 'Growing' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Huye Hillside Farm',
-    district: 'Huye',
-    location: 'Tumba Sector, Huye',
-    size: 2.8,
-    soilType: 'Sandy Loam',
-    status: 'Inactive',
-    irrigation: 'Manual',
-    img: 'https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?q=80&w=600',
-    createdAt: '2025-02-01',
-    plots: [
-      { id: 1, name: 'Plot A', size: 1.5, status: 'Idle' },
-      { id: 2, name: 'Plot B', size: 1.3, status: 'Idle' },
-    ],
-  },
-];
-// ─────────────────────────────────────────────────────────────
-
 export const FarmProvider = ({ children }) => {
-  const [farms, setFarms] = useState(initialFarms);
+  const { token, loading: authLoading } = useAuth();
+  const [farms, setFarms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+  if (!authLoading && token) {
+    fetchFarms();
+  } else if (!authLoading && !token) {
+    setLoading(false);
+  }
+  }, [token, authLoading]);
 
-  // ─── ADD FARM ──────────────────────────────────────────────
-  const addFarm = (newFarm) => {
-    setFarms((prev) => [
-      ...prev,
-      {
-        ...newFarm,
-        id: Date.now(),
-        status: 'Active',
-        plots: [],
-        createdAt: new Date().toISOString().split('T')[0],
-        img: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?q=80&w=600',
-      },
-    ]);
+  // ─── MAP BACKEND FIELDS TO FRONTEND FIELDS ────────────────
+  const mapFarm = (f) => ({
+    id: f.id,
+    name: f.name,
+    district: f.farmer?.user?.district || f.location || '—',
+    location: f.location || '—',
+    size: f.size,
+    soilType: f.soilType || '—',
+    status: 'Active',
+    irrigation: f.irrigation || 'Manual',
+    farmerId: f.farmerId,
+    img: f.img || 'https://images.unsplash.com/photo-1500076656116-558758c991c1?q=80&w=600',
+    createdAt: f.createdAt || new Date().toISOString().split('T')[0],
+    plots: f.plots || [],
+    crops: f.crops || [],
+  });
+
+  // ─── FETCH ALL FARMS ──────────────────────────────────────
+  const fetchFarms = async () => {
+    try {
+      const res = await fetch('/api/farms', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch farms');
+      const data = await res.json();
+      setFarms(data.farms.map(mapFarm));
+    } catch (err) {
+      console.error('fetchFarms error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ─── UPDATE FARM ───────────────────────────────────────────
-  const updateFarm = (id, updates) => {
-    setFarms((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
-    );
+  // ─── ADD FARM ─────────────────────────────────────────────
+  const addFarm = async (newFarm) => {
+    try {
+      const res = await fetch('/api/farms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newFarm.name,
+          location: newFarm.location || newFarm.district,
+          size: parseFloat(newFarm.size),
+          soilType: newFarm.soilType,
+          farmerId: newFarm.farmerId,
+        })
+      });
+      if (!res.ok) throw new Error('Failed to add farm');
+      await fetchFarms(); // refresh from backend
+    } catch (err) {
+      console.error('addFarm error:', err);
+      // ✅ Fallback — add locally if backend fails
+      setFarms((prev) => [
+        ...prev,
+        {
+          ...newFarm,
+          id: Date.now(),
+          status: 'Active',
+          plots: [],
+          crops: [],
+          createdAt: new Date().toISOString().split('T')[0],
+          img: 'https://images.unsplash.com/photo-1500076656116-558758c991c1?q=80&w=600',
+        },
+      ]);
+    }
   };
 
-  // ─── DELETE FARM ───────────────────────────────────────────
-  const deleteFarm = (id) => {
-    setFarms((prev) => prev.filter((f) => f.id !== id));
+  // ─── UPDATE FARM ──────────────────────────────────────────
+  const updateFarm = async (id, updates) => {
+    try {
+      await fetch(`/api/farms/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      });
+      setFarms((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+    } catch (err) {
+      console.error('updateFarm error:', err);
+      setFarms((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+    }
   };
 
-  // ─── ADD PLOT TO FARM ──────────────────────────────────────
+  // ─── DELETE FARM ──────────────────────────────────────────
+  const deleteFarm = async (id) => {
+    try {
+      await fetch(`/api/farms/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFarms((prev) => prev.filter((f) => f.id !== id));
+    } catch (err) {
+      console.error('deleteFarm error:', err);
+      setFarms((prev) => prev.filter((f) => f.id !== id));
+    }
+  };
+
+  // ─── ADD PLOT TO FARM (local only for now) ────────────────
   const addPlot = (farmId, plot) => {
     setFarms((prev) =>
       prev.map((f) =>
         f.id === farmId
-          ? {
-              ...f,
-              plots: [
-                ...f.plots,
-                { ...plot, id: Date.now() },
-              ],
-            }
+          ? { ...f, plots: [...f.plots, { ...plot, id: Date.now() }] }
           : f
       )
     );
   };
 
-  // ─── GET SINGLE FARM ───────────────────────────────────────
+  // ─── GET SINGLE FARM ──────────────────────────────────────
   const getFarm = (id) => farms.find((f) => f.id === Number(id));
 
   return (
     <FarmContext.Provider
-      value={{ farms, addFarm, updateFarm, deleteFarm, addPlot, getFarm }}
+      value={{ farms, loading, addFarm, updateFarm, deleteFarm, addPlot, getFarm, fetchFarms }}
     >
       {children}
     </FarmContext.Provider>
