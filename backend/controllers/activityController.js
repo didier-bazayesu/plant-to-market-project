@@ -3,6 +3,16 @@ const db = require('../models');
 // ─── GET ALL ACTIVITIES (for logged in user) ──────────────────
 exports.getActivities = async (req, res) => {
   try {
+
+    // ✅ Admin sees ALL activities
+        // ✅ Admin sees ALL activities
+    if (req.user.role === 'admin') {
+      const activities = await db.Activity.findAll({
+        include: [{ model: db.Crop, as: 'crop' }],
+        order: [['date', 'DESC']]
+      });
+      return res.json({ success: true, activities });
+    }
     // 1. Find farmer profile for logged in user
     const farmer = await db.Farmer.findOne({
       where: { userId: req.user.id }  // ✅ camelCase
