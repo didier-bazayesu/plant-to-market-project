@@ -8,21 +8,10 @@ import {
   Droplets, Sun, ArrowRight, Trash2
 } from 'lucide-react';
 
-const RWANDA_DISTRICTS = [
-  'Gasabo', 'Kicukiro', 'Nyarugenge',
-  'Burera', 'Gakenke', 'Gicumbi', 'Musanze', 'Rulindo',
-  'Gisagara', 'Huye', 'Kamonyi', 'Muhanga', 'Nyamagabe',
-  'Nyanza', 'Nyaruguru', 'Ruhango',
-  'Bugesera', 'Gatsibo', 'Kayonza', 'Kirehe', 'Ngoma',
-  'Nyagatare', 'Rwamagana',
-  'Karongi', 'Ngororero', 'Nyabihu', 'Nyamasheke',
-  'Rubavu', 'Rutsiro', 'Rusizi',
-];
-
 const SOIL_TYPES = ['Loamy', 'Clay', 'Sandy', 'Sandy Loam', 'Silty', 'Peaty'];
 
 const FarmList = () => {
-  const { farms, addFarm, deleteFarm } = useFarms();
+  const { farms, addFarm, deleteFarm, loading } = useFarms();
   const { crops } = useCrops();
   const navigate = useNavigate();
 
@@ -34,13 +23,13 @@ const FarmList = () => {
   const [formError, setFormError] = useState('');
 
   // ─── STATS ────────────────────────────────────────────────
-  const totalArea = farms.reduce((sum, f) => sum + f.size, 0);
+  const totalArea = farms.reduce((sum, f) => sum + Number(f.size || 0), 0);
   const activeFarms = farms.filter(f => f.status === 'Active').length;
   const totalCrops = crops.length;
 
-  // ─── GET CROPS PER FARM ───────────────────────────────────
-  const getCropCount = (farmName) =>
-    crops.filter(c => c.farm === farmName).length;
+  // ─── GET CROPS PER FARM ── using farm id (reliable) ──────
+  const getCropCount = (farmId) =>
+    crops.filter(c => c.farm_id === farmId).length;
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,8 +40,13 @@ const FarmList = () => {
       return;
     }
     addFarm({
-      ...formData,
+      name: formData.name,
+      location: formData.location || formData.district,
+      district: formData.district,
       size: parseFloat(formData.size),
+      soilType: formData.soilType,
+      irrigation: formData.irrigation,
+      // ✅ No farmerId — backend gets it from JWT token
     });
     setFormData({ name: '', district: '', location: '', size: '', soilType: '', irrigation: 'Manual' });
     setFormError('');
@@ -112,7 +106,12 @@ const FarmList = () => {
         </div>
 
         {/* FARMS GRID */}
-        {farms.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-[2.5rem] p-16 text-center border border-gray-100">
+            <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-bold text-gray-400">Loading farms...</p>
+          </div>
+        ) : farms.length === 0 ? (
           <div className="bg-white rounded-[2.5rem] p-16 text-center border border-gray-100 shadow-sm">
             <Layers size={40} className="text-gray-200 mx-auto mb-4" />
             <p className="font-black text-gray-400 text-lg">No farms yet</p>
@@ -164,43 +163,41 @@ const FarmList = () => {
                   <div className="absolute bottom-3 left-4 right-4">
                     <h3 className="text-lg font-black text-white">{farm.name}</h3>
                     <p className="text-xs text-white/70 font-bold flex items-center gap-1">
-                      <MapPin size={11} /> {farm.district}
+                      <MapPin size={11} /> {farm.district || farm.location}
                     </p>
                   </div>
                 </div>
 
                 {/* Farm info */}
                 <div className="p-5">
-                  {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-gray-50 rounded-2xl p-3 text-center">
                       <p className="text-base font-black text-gray-900">{farm.size}</p>
                       <p className="text-xs text-gray-400 font-bold mt-0.5">ha</p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-3 text-center">
-                      <p className="text-base font-black text-gray-900">{getCropCount(farm.name)}</p>
+                      {/* ✅ Using farm id for crop count */}
+                      <p className="text-base font-black text-gray-900">{getCropCount(farm.id)}</p>
                       <p className="text-xs text-gray-400 font-bold mt-0.5">Crops</p>
                     </div>
                     <div className="bg-gray-50 rounded-2xl p-3 text-center">
-                      <p className="text-base font-black text-gray-900">{farm.plots.length}</p>
-                      <p className="text-xs text-gray-400 font-bold mt-0.5">Plots</p>
+                      <p className="text-base font-black text-gray-900">{farm.crops?.length || 0}</p>
+                      <p className="text-xs text-gray-400 font-bold mt-0.5">Registered</p>
                     </div>
                   </div>
 
-                  {/* Soil + irrigation */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="flex items-center gap-1.5 text-sm text-gray-500 font-bold">
                       <FlaskConical size={14} className="text-amber-500" />
-                      {farm.soilType}
+                      {farm.soilType || '—'}
                     </div>
                     <div className="w-1 h-1 bg-gray-300 rounded-full" />
                     <div className="flex items-center gap-1.5 text-sm text-gray-500 font-bold">
                       <Droplets size={14} className="text-blue-400" />
-                      {farm.irrigation}
+                      {farm.irrigation || 'Manual'}
                     </div>
                   </div>
 
-                  {/* Enter farm button */}
                   <div className="flex items-center justify-between pt-3 border-t border-gray-50">
                     <span className="text-xs text-gray-400 font-bold">
                       Added {new Date(farm.createdAt).toLocaleDateString()}
@@ -229,13 +226,10 @@ const FarmList = () => {
           transform transition-transform duration-500 ease-in-out
           ${showPanel ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'}
         `}>
-
-          {/* Drag handle mobile */}
           <div className="flex justify-center pt-4 pb-1 md:hidden">
             <div className="w-10 h-1 bg-gray-200 rounded-full" />
           </div>
 
-          {/* Header */}
           <div className="px-8 pt-6 pb-5 border-b border-gray-100 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-xl">
@@ -246,15 +240,11 @@ const FarmList = () => {
                 <p className="text-sm text-gray-400 font-medium">Fill in your farm details</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowPanel(false)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
+            <button onClick={() => setShowPanel(false)} className="p-2 hover:bg-gray-100 rounded-full">
               <X size={20} />
             </button>
           </div>
 
-          {/* Form body */}
           <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
             {formError && (
               <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-sm font-bold text-red-600">
@@ -262,7 +252,6 @@ const FarmList = () => {
               </div>
             )}
 
-            {/* Farm Name */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Farm Name</label>
               <input
@@ -270,11 +259,10 @@ const FarmList = () => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="e.g. Kagera Valley Farm"
-                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm font-medium"
+                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
               />
             </div>
 
-            {/* District */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">District</label>
               <div className="relative">
@@ -306,7 +294,6 @@ const FarmList = () => {
               </div>
             </div>
 
-            {/* Specific Location */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Specific Location</label>
               <div className="relative">
@@ -321,7 +308,6 @@ const FarmList = () => {
               </div>
             </div>
 
-            {/* Farm Size */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Farm Size (hectares)</label>
               <div className="relative">
@@ -339,7 +325,6 @@ const FarmList = () => {
               </div>
             </div>
 
-            {/* Soil Type */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Soil Type</label>
               <div className="relative">
@@ -357,7 +342,6 @@ const FarmList = () => {
               </div>
             </div>
 
-            {/* Irrigation */}
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Irrigation Type</label>
               <div className="relative">
@@ -376,7 +360,6 @@ const FarmList = () => {
               </div>
             </div>
 
-            {/* Info */}
             <div className="p-5 bg-green-50 rounded-3xl border border-green-100 flex gap-3">
               <Sprout className="text-green-600 shrink-0 mt-0.5" size={16} />
               <p className="text-sm text-green-700 leading-relaxed font-medium">
@@ -385,7 +368,6 @@ const FarmList = () => {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="px-8 py-5 border-t border-gray-100">
             <button
               onClick={handleAddFarm}
@@ -425,7 +407,6 @@ const FarmList = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
