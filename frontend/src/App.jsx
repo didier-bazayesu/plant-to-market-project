@@ -24,6 +24,10 @@ import { CropProvider } from './context/CropContext';
 import { FarmProvider } from './context/FarmContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+// import AdminFarmers from "./pages/admin/Farmers";
+import AdminFarmerDetail from "./pages/admin/FarmerDetail";
+import AdminFarmDetail from "./pages/admin/FarmDetail";
+import AdminCropDetail from "./pages/admin/CropDetail";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -48,6 +52,7 @@ const router = createBrowserRouter(
         <Route path="my-farms/:farmId" element={<FarmDetail />} />
         <Route path="my-farms/:farmId/crops/:cropId" element={<CropDetail />} />
         <Route path="my-crops" element={<Crops />} />
+        
       </Route>
 
       {/* ── ADMIN PROTECTED ── */}
@@ -55,9 +60,17 @@ const router = createBrowserRouter(
         <AdminRoute>
           <Layout />
         </AdminRoute>
+        
       }>
+
         <Route index element={<AdminDashboard />} />
         <Route path="farmers" element={<Farmers />} />
+
+         <Route index element={<AdminDashboard />} />
+        <Route path="farmers" element={<Farmers />} />
+        <Route path="farmers/:id" element={<AdminFarmerDetail />} />                             
+        <Route path="farmers/:id/farms/:farmId" element={<AdminFarmDetail />} />                  
+        <Route path="farmers/:id/farms/:farmId/crops/:cropId" element={<AdminCropDetail />} />   
       </Route>
     </>
   )
