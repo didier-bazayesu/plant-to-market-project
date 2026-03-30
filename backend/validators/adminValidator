@@ -1,0 +1,22 @@
+const { body } = require('express-validator');
+
+// Rules for updating basic user/farmer info
+const updateUserValidation = [
+  body('name').optional().isString().notEmpty().withMessage('Name cannot be empty'),
+  body('email').optional().isEmail().withMessage('Valid email is required'),
+  body('district').optional().isString(),
+  body('role').optional().isIn(['admin', 'farmer']).withMessage('Invalid role'),
+];
+
+// Rules for admin to add/edit activities for a user's crop
+const activityValidation = [
+  body('cropId').isNumeric().withMessage('Crop ID is required'),
+  body('type').isIn(['irrigation', 'fertilization', 'pesticide']).withMessage('Invalid type'),
+  body('date').isISO8601().withMessage('A valid date is required'),
+  body('notes').optional().isString(),
+];
+
+module.exports = {
+  updateUserValidation,
+  activityValidation
+};
