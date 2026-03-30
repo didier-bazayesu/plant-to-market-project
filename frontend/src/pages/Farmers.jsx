@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Users, MapPin, Search, Filter,
@@ -11,6 +12,8 @@ const STATUS_FILTERS = ['All', 'Active', 'Inactive'];
 
 const Farmers = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
+
   const [farmers, setFarmers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -27,7 +30,6 @@ const Farmers = () => {
         if (!res.ok) throw new Error('Failed to fetch farmers');
         const data = await res.json();
 
-        // ✅ Map backend fields to frontend fields
         const mapped = data.farmers.map(f => ({
           id: f.id,
           name: f.name,
@@ -168,8 +170,8 @@ const Farmers = () => {
                 {filtered.map((f) => (
                   <tr
                     key={f.id}
-                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${selectedFarmer?.id === f.id ? 'bg-green-50' : ''}`}
-                    onClick={() => setSelectedFarmer(selectedFarmer?.id === f.id ? null : f)}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/admin/farmers/${f.id}`)}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -182,36 +184,12 @@ const Farmers = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
-                        <MapPin size={12} className="text-green-500 shrink-0" />
-                        {f.district}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-bold text-gray-600">{f.phone}</p>
-                      <p className="text-[10px] text-gray-400 font-medium truncate max-w-[140px]">{f.email}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <Layers size={14} className="text-blue-400" />
-                        <span className="font-black text-gray-900 text-sm">{f.farms}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <Sprout size={14} className="text-green-500" />
-                        <span className="font-black text-gray-900 text-sm">{f.crops}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-black text-gray-900">{f.totalArea} ha</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-bold text-gray-400">
-                        {new Date(f.joined).toLocaleDateString()}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4">{f.district}</td>
+                    <td className="px-6 py-4">{f.phone}<br/><span className="text-[10px] text-gray-400 font-medium truncate max-w-[140px]">{f.email}</span></td>
+                    <td className="px-6 py-4">{f.farms}</td>
+                    <td className="px-6 py-4">{f.crops}</td>
+                    <td className="px-6 py-4">{f.totalArea} ha</td>
+                    <td className="px-6 py-4">{new Date(f.joined).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
                         f.status === 'Active'
@@ -222,9 +200,7 @@ const Farmers = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button className="text-green-600 hover:text-green-700 transition-colors">
-                        <Eye size={16} />
-                      </button>
+                      <Eye size={16} />
                     </td>
                   </tr>
                 ))}
@@ -241,64 +217,6 @@ const Farmers = () => {
           </div>
         </div>
 
-        {/* DETAIL PANEL */}
-        {selectedFarmer && (
-          <div className="bg-white rounded-[2rem] border border-green-100 shadow-sm p-6 md:p-8">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-green-100 rounded-3xl flex items-center justify-center font-black text-green-600 text-2xl">
-                  {selectedFarmer.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-gray-900">{selectedFarmer.name}</h3>
-                  <p className="text-xs text-gray-400 font-bold flex items-center gap-1 mt-1">
-                    <MapPin size={12} className="text-green-500" />
-                    {selectedFarmer.district}, Rwanda
-                  </p>
-                  <span className="inline-block mt-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase border bg-green-50 text-green-600 border-green-100">
-                    {selectedFarmer.status}
-                  </span>
-                </div>
-              </div>
-              <button onClick={() => setSelectedFarmer(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <X size={18} className="text-gray-400" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              {[
-                { icon: Phone, label: 'Phone', value: selectedFarmer.phone, color: 'text-blue-500' },
-                { icon: Mail, label: 'Email', value: selectedFarmer.email, color: 'text-purple-500' },
-                { icon: Calendar, label: 'Joined', value: new Date(selectedFarmer.joined).toLocaleDateString(), color: 'text-amber-500' },
-                { icon: TrendingUp, label: 'Revenue', value: `${selectedFarmer.revenue} RWF`, color: 'text-green-500' },
-              ].map((item) => (
-                <div key={item.label} className="bg-gray-50 rounded-2xl p-4">
-                  <item.icon size={14} className={`${item.color} mb-2`} />
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.label}</p>
-                  <p className="text-sm font-black text-gray-800 mt-0.5 truncate">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-green-50 border border-green-100 rounded-2xl p-4 text-center">
-                <Layers size={20} className="text-green-600 mx-auto mb-2" />
-                <p className="text-2xl font-black text-gray-900">{selectedFarmer.farms}</p>
-                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Farms</p>
-              </div>
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
-                <Sprout size={20} className="text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-black text-gray-900">{selectedFarmer.crops}</p>
-                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Crops</p>
-              </div>
-              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
-                <MapPin size={20} className="text-amber-600 mx-auto mb-2" />
-                <p className="text-2xl font-black text-gray-900">{selectedFarmer.totalArea} ha</p>
-                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Total Area</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
