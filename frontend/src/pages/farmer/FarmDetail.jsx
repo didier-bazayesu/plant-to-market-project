@@ -72,12 +72,13 @@ const FarmDetail = () => {
     (step === 1 && !cropForm.size) ||
     (step === 2 && (!cropForm.plantingDate || !cropForm.harvestDate));
 
-  const handleAddCrop = () => {
-    addCrop({
-      ...cropForm,
-      farm: farm.name,
-      location: farm.district,
-      size: cropForm.size,
+    const handleAddCrop = () => {
+      addCrop({
+        ...cropForm,
+        farm: farm.name,
+        location: farm.district,
+        size: cropForm.size,
+        farmId: farm.id,  // ✅ this is the only line added
     });
     setCropForm({
       name: '', variety: '', size: '',
