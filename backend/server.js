@@ -22,6 +22,9 @@ app.use('/api/crops',       require('./routes/cropRoutes'));
 app.use('/api/activities',  require('./routes/activityRoutes'));
 app.use('/api/harvests',    require('./routes/harvestRoutes'));
 app.use('/api/marketprices',require('./routes/marketPriceRoutes'));
+const adminRoutes = require('./routes/adminRoutes');
+console.log("Admin routes loaded:", !!adminRoutes); 
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res, next) => {
