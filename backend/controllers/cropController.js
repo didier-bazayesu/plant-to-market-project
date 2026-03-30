@@ -3,6 +3,17 @@ const db = require('../models');
 // ─── GET ALL CROPS (for logged in user) ───────────────────────
 exports.getCrops = async (req, res) => {
   try {
+    // ✅ Admin sees ALL crops
+    if (req.user.role === 'admin') {
+      const crops = await db.Crop.findAll({
+        include: [
+          { model: db.Farm, as: 'farm' },
+          { model: db.Activity, as: 'activities' },
+          { model: db.Harvest, as: 'harvests' }
+        ]
+      });
+      return res.json({ success: true, crops });
+    }
     // 1. Find farmer profile for logged in user
     const farmer = await db.Farmer.findOne({
       where: { userId: req.user.id }
