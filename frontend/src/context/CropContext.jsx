@@ -9,11 +9,11 @@ export const CropProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  if (!authLoading && token) {
-    fetchCrops();
-  } else if (!authLoading && !token) {
-    setLoading(false);
-  }
+    if (!authLoading && token) {
+      fetchCrops();
+    } else if (!authLoading && !token) {
+      setLoading(false);
+    }
   }, [token, authLoading]);
 
   // ─── MAP BACKEND FIELDS TO FRONTEND FIELDS ────────────────
@@ -31,7 +31,7 @@ export const CropProvider = ({ children }) => {
     size: c.size ? `${c.size} ha` : '—',
     img: c.img || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=400',
     status: c.status,
-    farm_id: c.farm_id,
+    farmId: c.farmId, // ✅ was farm_id
   });
 
   // ─── FETCH ALL CROPS ──────────────────────────────────────
@@ -52,6 +52,16 @@ export const CropProvider = ({ children }) => {
 
   // ─── ADD CROP ─────────────────────────────────────────────
   const addCrop = async (newCrop) => {
+    const payload = {
+      cropType: newCrop.name,
+      farmId: newCrop.farmId,              // ✅ camelCase
+      plantingDate: newCrop.plantingDate,
+      harvestDate: newCrop.harvestDate,    // ✅ added
+      variety: newCrop.variety,            // ✅ added
+      status: 'planted',
+    };
+    console.log('addCrop payload:', payload); // ✅ inside function now
+
     try {
       const res = await fetch('/api/crops', {
         method: 'POST',
@@ -59,18 +69,13 @@ export const CropProvider = ({ children }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          cropType: newCrop.name,
-          plantingDate: newCrop.plantingDate,
-          farm_id: newCrop.farm_id,
-          status: 'planted',
-        })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Failed to add crop');
-      await fetchCrops(); // refresh from backend
+      await fetchCrops();
     } catch (err) {
       console.error('addCrop error:', err);
-      // ✅ Fallback — add locally if backend fails
+      // Fallback — add locally if backend fails
       setCrops((prev) => [
         ...prev,
         {
@@ -99,7 +104,6 @@ export const CropProvider = ({ children }) => {
       setCrops((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     } catch (err) {
       console.error('updateCrop error:', err);
-      // Fallback — update locally
       setCrops((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     }
   };
@@ -114,7 +118,6 @@ export const CropProvider = ({ children }) => {
       setCrops((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error('deleteCrop error:', err);
-      // Fallback — delete locally
       setCrops((prev) => prev.filter((c) => c.id !== id));
     }
   };
