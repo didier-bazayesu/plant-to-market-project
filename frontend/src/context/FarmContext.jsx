@@ -48,6 +48,8 @@ export const FarmProvider = ({ children }) => {
     }
   };
 
+ 
+
   // ─── ADD FARM ─────────────────────────────────────────────
   const addFarm = async (newFarm) => {
     try {
