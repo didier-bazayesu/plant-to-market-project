@@ -32,6 +32,7 @@ const Farmers = () => {
 
         const mapped = data.farmers.map(f => ({
           id: f.id,
+          userId:f.userId,
           name: f.name,
           email: f.email,
           phone: f.phone || '—',
@@ -71,6 +72,7 @@ const Farmers = () => {
     const matchStatus = statusFilter === 'All' || f.status === statusFilter;
     return matchSearch && matchStatus;
   });
+  console.log(filtered)
 
   if (loading) {
     return (
@@ -171,7 +173,7 @@ const Farmers = () => {
                   <tr
                     key={f.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/farmers/${f.id}`)}
+                    onClick={() => navigate(`/admin/farmers/${f.userId}`)}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -185,6 +187,7 @@ const Farmers = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">{f.district}</td>
+                    
                     <td className="px-6 py-4">{f.phone}<br/><span className="text-[10px] text-gray-400 font-medium truncate max-w-[140px]">{f.email}</span></td>
                     <td className="px-6 py-4">{f.farms}</td>
                     <td className="px-6 py-4">{f.crops}</td>
