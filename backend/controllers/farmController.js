@@ -1,4 +1,5 @@
 const db = require('../models');
+const { Farmer, Farm } = require('../models');
 
 // ─── GET ALL FARMS (for logged in user) ───────────────────────
 exports.getFarms = async (req, res) => {
@@ -106,5 +107,33 @@ exports.deleteFarm = async (req, res) => {
     res.json({ success: true, message: 'Farm deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+exports.getFarmsByUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const farmer = await db.Farmer.findOne({
+      where: { userId },
+      include: [
+        {
+          model: db.Farm,
+          as: 'farms',
+          include: [
+            { model: db.Crop, as: 'crops' }
+          ]
+        }
+      ]
+    });
+
+    if (!farmer) {
+      return res.json({ success: true, farms: [] });
+    }
+
+    res.json({ success: true, farms: farmer.farms });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
