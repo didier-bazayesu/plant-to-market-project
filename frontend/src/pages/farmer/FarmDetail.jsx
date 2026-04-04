@@ -9,6 +9,7 @@ import {
   AlertTriangle, CheckCircle2, Clock,
   TrendingUp, Trash2, Image
 } from 'lucide-react';
+import FarmWeatherSummary from '../../components/FarmWeatherSummary';
 
 const STEPS = ['Crop Info', 'Location & Size', 'Schedule'];
 
@@ -45,6 +46,20 @@ const FarmDetail = () => {
   const healthyCrops = farmCrops.filter(c => c.health === 'Healthy').length;
   const atRiskCrops = farmCrops.filter(c => c.health === 'At Risk').length;
   const readyToHarvest = farmCrops.filter(c => c.progress >= 80).length;
+
+  // In the info tab or as a new "Weather" tab:
+  {activeTab === 'weather' && (
+    <FarmWeatherSummary
+      district={farm.district || farm.location}
+      crops={farmCrops}
+    />
+  )}
+     // Add 'weather' to tabs:
+// {['crops', 'plots', 'info', 'weather'].map(tab => (
+//   <button key={tab} ...>{tab} </button>
+// ))}
+    
+   
 
   if (!farm) {
     return (
@@ -120,6 +135,7 @@ const FarmDetail = () => {
               </p>
             </div>
           </div>
+            
 
           <div className="flex items-center gap-3">
             <button
