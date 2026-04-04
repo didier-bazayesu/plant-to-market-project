@@ -390,6 +390,7 @@ const FarmList = () => {
                 <ChevronRight size={16} className="absolute right-4 top-4 text-gray-300 rotate-90 pointer-events-none" />
               </div>
             </div>
+            
 
             <div className="space-y-2">
               <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Specific Location</label>
