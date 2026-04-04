@@ -4,7 +4,7 @@ import { useCrops } from '../context/CropContext';
 import { 
   Sprout, Droplets, TrendingUp, MapPin, 
   CloudRain, Plus, ArrowRight, Microscope,
-  Activity, Leaf, Shield, X, Calendar, ChevronRight
+  Activity, Leaf, Shield, X, Calendar, ChevronRight , Edit2
 } from 'lucide-react';
 import RegisterCrop from '../components/RegisterCrop';
 
@@ -450,6 +450,7 @@ const ActivityPage = () => {
                     <> Log Activity <ChevronRight size={16} /> </>
                   )}
                 </button>
+                
               </div>
             </>
           )}
