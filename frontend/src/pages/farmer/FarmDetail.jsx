@@ -25,7 +25,7 @@ const FarmDetail = () => {
   const [showAddPlot, setShowAddPlot] = useState(false);
   const [confirmDeleteFarm, setConfirmDeleteFarm] = useState(false);
   const [confirmDeleteCrop, setConfirmDeleteCrop] = useState(null);
-  const [activeTab, setActiveTab] = useState('crops'); // crops | plots | info
+  const [activeTab, setActiveTab] = useState('crops');
 
   // ─── REGISTER CROP FORM ───────────────────────────────────
   const [step, setStep] = useState(0);
@@ -40,26 +40,12 @@ const FarmDetail = () => {
   const [plotForm, setPlotForm] = useState({ name: '', size: '', status: 'Idle' });
 
   // ─── FARM CROPS ───────────────────────────────────────────
-  const farmCrops = crops.filter(c => c.farm === farm?.name);
+  const farmCrops = crops.filter(c => c.farmId === farm?.id);
 
   // ─── STATS ────────────────────────────────────────────────
   const healthyCrops = farmCrops.filter(c => c.health === 'Healthy').length;
   const atRiskCrops = farmCrops.filter(c => c.health === 'At Risk').length;
   const readyToHarvest = farmCrops.filter(c => c.progress >= 80).length;
-
-  // In the info tab or as a new "Weather" tab:
-  {activeTab === 'weather' && (
-    <FarmWeatherSummary
-      district={farm.district || farm.location}
-      crops={farmCrops}
-    />
-  )}
-     // Add 'weather' to tabs:
-// {['crops', 'plots', 'info', 'weather'].map(tab => (
-//   <button key={tab} ...>{tab} </button>
-// ))}
-    
-   
 
   if (!farm) {
     return (
@@ -87,13 +73,13 @@ const FarmDetail = () => {
     (step === 1 && !cropForm.size) ||
     (step === 2 && (!cropForm.plantingDate || !cropForm.harvestDate));
 
-    const handleAddCrop = () => {
-      addCrop({
-        ...cropForm,
-        farm: farm.name,
-        location: farm.district,
-        size: cropForm.size,
-        farmId: farm.id,  // ✅ this is the only line added
+  const handleAddCrop = () => {
+    addCrop({
+      ...cropForm,
+      farm: farm.name,
+      location: farm.district,
+      size: cropForm.size,
+      farmId: farm.id,
     });
     setCropForm({
       name: '', variety: '', size: '',
@@ -114,7 +100,6 @@ const FarmDetail = () => {
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20">
-
       {/* TOP BAR */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -135,7 +120,6 @@ const FarmDetail = () => {
               </p>
             </div>
           </div>
-            
 
           <div className="flex items-center gap-3">
             <button
@@ -161,7 +145,6 @@ const FarmDetail = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
-
         {/* FARM HERO */}
         <div className="relative h-52 md:h-64 rounded-[2rem] overflow-hidden shadow-xl">
           <img
@@ -206,8 +189,8 @@ const FarmDetail = () => {
         </div>
 
         {/* TABS */}
-        <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit">
-          {['crops', 'plots', 'info'].map((tab) => (
+        <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit flex-wrap">
+          {['crops', 'plots', 'info', 'weather'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -246,7 +229,6 @@ const FarmDetail = () => {
                     key={crop.id}
                     className="bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
                   >
-                    {/* Image */}
                     <div className="h-40 overflow-hidden relative">
                       <img
                         src={crop.img}
@@ -254,8 +236,6 @@ const FarmDetail = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-                      {/* Health badge */}
                       <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-black uppercase border ${
                         crop.health === 'Healthy'
                           ? 'bg-green-50 text-green-600 border-green-100'
@@ -263,8 +243,6 @@ const FarmDetail = () => {
                       }`}>
                         {crop.health}
                       </span>
-
-                      {/* Delete button */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -274,8 +252,6 @@ const FarmDetail = () => {
                       >
                         <Trash2 size={14} />
                       </button>
-
-                      {/* Progress */}
                       <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm rounded-xl px-3 py-1.5 flex items-center gap-2">
                         <div className="w-14 h-1.5 bg-white/20 rounded-full">
                           <div
@@ -286,8 +262,6 @@ const FarmDetail = () => {
                         <span className="text-white text-xs font-black">{crop.progress}%</span>
                       </div>
                     </div>
-
-                    {/* Info */}
                     <div className="p-5">
                       <h3 className="text-base font-black text-gray-900">{crop.name}</h3>
                       <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter mb-3">
@@ -334,7 +308,6 @@ const FarmDetail = () => {
                 <Plus size={14} /> Add Plot
               </button>
             </div>
-
             {farm.plots.length === 0 ? (
               <div className="p-14 text-center">
                 <Layers size={36} className="text-gray-200 mx-auto mb-3" />
@@ -404,303 +377,289 @@ const FarmDetail = () => {
             </div>
           </div>
         )}
+
+        {/* ── WEATHER TAB ── */}
+        {activeTab === 'weather' && (
+          <FarmWeatherSummary
+            district={farm.district || farm.location}
+            crops={farmCrops}
+            farmId={farm.id}
+            farmName={farm.name}
+            existingCoords={
+              farm.latitude && farm.longitude
+                ? { latitude: farm.latitude, longitude: farm.longitude }
+                : null
+            }
+          />
+        )}
+
       </div>
 
-      {/* ── ADD CROP PANEL ── */}
-      <>
-        <div
-          className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-500 ${showAddCrop ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          onClick={() => { setShowAddCrop(false); setStep(0); }}
-        />
-        <div className={`
-          fixed z-50 bg-white shadow-2xl flex flex-col
-          inset-x-0 bottom-0 top-[5%] rounded-t-[2.5rem]
-          md:inset-y-0 md:top-0 md:right-0 md:left-auto md:w-[480px] md:rounded-none md:rounded-l-[2.5rem]
-          transform transition-transform duration-500 ease-in-out
-          ${showAddCrop ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'}
-        `}>
-          {/* Drag handle */}
-          <div className="flex justify-center pt-4 pb-1 md:hidden">
-            <div className="w-10 h-1 bg-gray-200 rounded-full" />
-          </div>
-
-          {/* Header */}
-          <div className="px-8 pt-6 pb-5 border-b border-gray-100">
-            <div className="flex justify-between items-center mb-5">
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-xl">
-                  <Sprout className="text-green-600" size={18} />
+      {/* ADD CROP PANEL */}
+      {showAddCrop && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-500"
+            onClick={() => { setShowAddCrop(false); setStep(0); }}
+          />
+          <div className="fixed z-50 bg-white shadow-2xl flex flex-col inset-x-0 bottom-0 top-[5%] rounded-t-[2.5rem] md:inset-y-0 md:top-0 md:right-0 md:left-auto md:w-[480px] md:rounded-none md:rounded-l-[2.5rem] transform transition-transform duration-500 ease-in-out">
+            <div className="flex justify-center pt-4 pb-1 md:hidden">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="px-8 pt-6 pb-5 border-b border-gray-100">
+              <div className="flex justify-between items-center mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-xl">
+                    <Sprout className="text-green-600" size={18} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-gray-900">Add Crop</h2>
+                    <p className="text-sm text-gray-400 font-medium">
+                      to {farm.name} • Step {step + 1} of {STEPS.length}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-black text-gray-900">Add Crop</h2>
-                  <p className="text-sm text-gray-400 font-medium">
-                    to {farm.name} • Step {step + 1} of {STEPS.length}
-                  </p>
-                </div>
+                <button
+                  onClick={() => { setShowAddCrop(false); setStep(0); }}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={() => { setShowAddCrop(false); setStep(0); }}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex gap-2">
+                {STEPS.map((label, i) => (
+                  <div key={i} className="flex-1">
+                    <div className={`h-1.5 rounded-full transition-all duration-500 ${i <= step ? 'bg-green-500' : 'bg-gray-100'}`} />
+                    <p className={`text-xs font-black uppercase mt-1.5 tracking-wider ${i === step ? 'text-green-600' : 'text-gray-300'}`}>
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {/* Step progress */}
-            <div className="flex gap-2">
-              {STEPS.map((label, i) => (
-                <div key={i} className="flex-1">
-                  <div className={`h-1.5 rounded-full transition-all duration-500 ${i <= step ? 'bg-green-500' : 'bg-gray-100'}`} />
-                  <p className={`text-xs font-black uppercase mt-1.5 tracking-wider ${i === step ? 'text-green-600' : 'text-gray-300'}`}>
-                    {label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form body */}
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-
-            {/* STEP 1 */}
-            {step === 0 && (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Crop Type</label>
-                  <input
-                    name="name"
-                    value={cropForm.name}
-                    onChange={handleCropChange}
-                    placeholder="e.g. Maize"
-                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm font-medium"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Variety</label>
-                  <input
-                    name="variety"
-                    value={cropForm.variety}
-                    onChange={handleCropChange}
-                    placeholder="e.g. Hybrid H624"
-                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Crop Photo</label>
-                  <div className="relative h-36 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 group cursor-pointer">
-                    <img src={cropForm.img} alt="crop" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white rounded-xl px-4 py-2 flex items-center gap-2 text-xs font-bold text-gray-700">
-                        <Image size={14} /> Change Photo
+            <div className="flex-1 overflow-y-auto px-8 py-6">
+              {step === 0 && (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Crop Type</label>
+                    <input
+                      name="name"
+                      value={cropForm.name}
+                      onChange={handleCropChange}
+                      placeholder="e.g. Maize"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Variety</label>
+                    <input
+                      name="variety"
+                      value={cropForm.variety}
+                      onChange={handleCropChange}
+                      placeholder="e.g. Hybrid H624"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Crop Photo</label>
+                    <div className="relative h-36 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 group cursor-pointer">
+                      <img src={cropForm.img} alt="crop" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-white rounded-xl px-4 py-2 flex items-center gap-2 text-xs font-bold text-gray-700">
+                          <Image size={14} /> Change Photo
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* STEP 2 */}
-            {step === 1 && (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Field Size (hectares)</label>
-                  <div className="relative">
-                    <Ruler className="absolute left-4 top-4 text-gray-300" size={16} />
-                    <input
-                      type="number"
-                      name="size"
-                      value={cropForm.size}
-                      onChange={handleCropChange}
-                      placeholder="e.g. 1.5"
-                      min="0"
-                      step="0.1"
-                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
-                    />
+              )}
+              {step === 1 && (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Field Size (hectares)</label>
+                    <div className="relative">
+                      <Ruler className="absolute left-4 top-4 text-gray-300" size={16} />
+                      <input
+                        type="number"
+                        name="size"
+                        value={cropForm.size}
+                        onChange={handleCropChange}
+                        placeholder="e.g. 1.5"
+                        min="0"
+                        step="0.1"
+                        className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                      />
+                    </div>
                   </div>
-                </div>
-
-                {/* Farm info card */}
-                <div className="p-5 bg-green-50 rounded-3xl border border-green-100 space-y-2">
-                  <p className="text-xs font-black uppercase text-green-600 tracking-widest">Farm Details</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-gray-400 font-bold text-xs">Farm</p>
-                      <p className="font-black text-gray-800">{farm.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 font-bold text-xs">District</p>
-                      <p className="font-black text-gray-800">{farm.district}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 font-bold text-xs">Soil</p>
-                      <p className="font-black text-gray-800">{farm.soilType}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 font-bold text-xs">Irrigation</p>
-                      <p className="font-black text-gray-800">{farm.irrigation}</p>
+                  <div className="p-5 bg-green-50 rounded-3xl border border-green-100 space-y-2">
+                    <p className="text-xs font-black uppercase text-green-600 tracking-widest">Farm Details</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-gray-400 font-bold text-xs">Farm</p>
+                        <p className="font-black text-gray-800">{farm.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold text-xs">District</p>
+                        <p className="font-black text-gray-800">{farm.district}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold text-xs">Soil</p>
+                        <p className="font-black text-gray-800">{farm.soilType}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-bold text-xs">Irrigation</p>
+                        <p className="font-black text-gray-800">{farm.irrigation}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* STEP 3 */}
-            {step === 2 && (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Planting Date</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
-                    <input
-                      type="date"
-                      name="plantingDate"
-                      value={cropForm.plantingDate}
-                      onChange={handleCropChange}
-                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
-                    />
+              )}
+              {step === 2 && (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Planting Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
+                      <input
+                        type="date"
+                        name="plantingDate"
+                        value={cropForm.plantingDate}
+                        onChange={handleCropChange}
+                        className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Expected Harvest Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
+                      <input
+                        type="date"
+                        name="harvestDate"
+                        value={cropForm.harvestDate}
+                        onChange={handleCropChange}
+                        className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
+                    <p className="text-xs font-black uppercase text-gray-500 tracking-widest">Summary</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div><p className="text-gray-400 font-bold text-xs">Crop</p><p className="font-black text-gray-800">{cropForm.name || '—'}</p></div>
+                      <div><p className="text-gray-400 font-bold text-xs">Variety</p><p className="font-black text-gray-800">{cropForm.variety || '—'}</p></div>
+                      <div><p className="text-gray-400 font-bold text-xs">Size</p><p className="font-black text-gray-800">{cropForm.size ? `${cropForm.size} ha` : '—'}</p></div>
+                      <div><p className="text-gray-400 font-bold text-xs">Farm</p><p className="font-black text-gray-800">{farm.name}</p></div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Expected Harvest Date</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
-                    <input
-                      type="date"
-                      name="harvestDate"
-                      value={cropForm.harvestDate}
-                      onChange={handleCropChange}
-                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Summary */}
-                <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
-                  <p className="text-xs font-black uppercase text-gray-500 tracking-widest">Summary</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div><p className="text-gray-400 font-bold text-xs">Crop</p><p className="font-black text-gray-800">{cropForm.name || '—'}</p></div>
-                    <div><p className="text-gray-400 font-bold text-xs">Variety</p><p className="font-black text-gray-800">{cropForm.variety || '—'}</p></div>
-                    <div><p className="text-gray-400 font-bold text-xs">Size</p><p className="font-black text-gray-800">{cropForm.size ? `${cropForm.size} ha` : '—'}</p></div>
-                    <div><p className="text-gray-400 font-bold text-xs">Farm</p><p className="font-black text-gray-800">{farm.name}</p></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-8 py-5 border-t border-gray-100 flex gap-3">
-            {step > 0 && (
-              <button
-                type="button"
-                onClick={() => setStep(s => s - 1)}
-                className="flex-1 py-4 rounded-2xl border-2 border-gray-100 font-black text-gray-500 hover:bg-gray-50 transition-all text-sm"
-              >
-                Back
-              </button>
-            )}
-            {step < STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setStep(s => s + 1)}
-                disabled={cropNextDisabled}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
-              >
-                Next <ChevronRight size={16} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleAddCrop}
-                disabled={cropNextDisabled}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
-              >
-                Add Crop <ChevronRight size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </>
-
-      {/* ── ADD PLOT PANEL ── */}
-      <>
-        <div
-          className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-500 ${showAddPlot ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          onClick={() => setShowAddPlot(false)}
-        />
-        <div className={`
-          fixed z-50 bg-white shadow-2xl flex flex-col
-          inset-x-0 bottom-0 top-[40%] rounded-t-[2.5rem]
-          md:inset-y-0 md:top-0 md:right-0 md:left-auto md:w-[420px] md:rounded-none md:rounded-l-[2.5rem]
-          transform transition-transform duration-500 ease-in-out
-          ${showAddPlot ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'}
-        `}>
-          <div className="flex justify-center pt-4 pb-1 md:hidden">
-            <div className="w-10 h-1 bg-gray-200 rounded-full" />
-          </div>
-
-          <div className="px-8 pt-6 pb-5 border-b border-gray-100 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-50 p-2 rounded-xl">
-                <Layers className="text-blue-600" size={18} />
-              </div>
-              <h2 className="text-lg font-black text-gray-900">Add Plot</h2>
+              )}
             </div>
-            <button onClick={() => setShowAddPlot(false)} className="p-2 hover:bg-gray-100 rounded-full">
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="flex-1 px-8 py-6 space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Plot Name</label>
-              <input
-                value={plotForm.name}
-                onChange={e => setPlotForm({ ...plotForm, name: e.target.value })}
-                placeholder="e.g. Plot A"
-                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
-              />
+            <div className="px-8 py-5 border-t border-gray-100 flex gap-3">
+              {step > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(s => s - 1)}
+                  className="flex-1 py-4 rounded-2xl border-2 border-gray-100 font-black text-gray-500 hover:bg-gray-50 transition-all text-sm"
+                >
+                  Back
+                </button>
+              )}
+              {step < STEPS.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(s => s + 1)}
+                  disabled={cropNextDisabled}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+                >
+                  Next <ChevronRight size={16} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAddCrop}
+                  disabled={cropNextDisabled}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+                >
+                  Add Crop <ChevronRight size={16} />
+                </button>
+              )}
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Size (hectares)</label>
-              <div className="relative">
-                <Ruler className="absolute left-4 top-4 text-gray-300" size={16} />
+          </div>
+        </>
+      )}
+
+      {/* ADD PLOT PANEL */}
+      {showAddPlot && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-500"
+            onClick={() => setShowAddPlot(false)}
+          />
+          <div className="fixed z-50 bg-white shadow-2xl flex flex-col inset-x-0 bottom-0 top-[40%] rounded-t-[2.5rem] md:inset-y-0 md:top-0 md:right-0 md:left-auto md:w-[420px] md:rounded-none md:rounded-l-[2.5rem] transform transition-transform duration-500 ease-in-out">
+            <div className="flex justify-center pt-4 pb-1 md:hidden">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+            <div className="px-8 pt-6 pb-5 border-b border-gray-100 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-50 p-2 rounded-xl">
+                  <Layers className="text-blue-600" size={18} />
+                </div>
+                <h2 className="text-lg font-black text-gray-900">Add Plot</h2>
+              </div>
+              <button onClick={() => setShowAddPlot(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 px-8 py-6 space-y-5">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Plot Name</label>
                 <input
-                  type="number"
-                  value={plotForm.size}
-                  onChange={e => setPlotForm({ ...plotForm, size: e.target.value })}
-                  placeholder="e.g. 1.5"
-                  min="0"
-                  step="0.1"
-                  className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                  value={plotForm.name}
+                  onChange={e => setPlotForm({ ...plotForm, name: e.target.value })}
+                  placeholder="e.g. Plot A"
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Size (hectares)</label>
+                <div className="relative">
+                  <Ruler className="absolute left-4 top-4 text-gray-300" size={16} />
+                  <input
+                    type="number"
+                    value={plotForm.size}
+                    onChange={e => setPlotForm({ ...plotForm, size: e.target.value })}
+                    placeholder="e.g. 1.5"
+                    min="0"
+                    step="0.1"
+                    className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Status</label>
+                <select
+                  value={plotForm.status}
+                  onChange={e => setPlotForm({ ...plotForm, status: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm appearance-none"
+                >
+                  {['Idle', 'Planting', 'Growing', 'Harvesting'].map(s => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Status</label>
-              <select
-                value={plotForm.status}
-                onChange={e => setPlotForm({ ...plotForm, status: e.target.value })}
-                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none text-gray-800 text-sm appearance-none"
+            <div className="px-8 py-5 border-t border-gray-100">
+              <button
+                onClick={handleAddPlot}
+                disabled={!plotForm.name || !plotForm.size}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all text-sm"
               >
-                {['Idle', 'Planting', 'Growing', 'Harvesting'].map(s => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+                Add Plot
+              </button>
             </div>
           </div>
-
-          <div className="px-8 py-5 border-t border-gray-100">
-            <button
-              onClick={handleAddPlot}
-              disabled={!plotForm.name || !plotForm.size}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all text-sm"
-            >
-              Add Plot
-            </button>
-          </div>
-        </div>
-      </>
+        </>
+      )}
 
       {/* DELETE FARM MODAL */}
       {confirmDeleteFarm && (
@@ -765,7 +724,6 @@ const FarmDetail = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
