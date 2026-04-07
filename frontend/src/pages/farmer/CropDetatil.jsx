@@ -10,6 +10,10 @@ import {
   Microscope, Leaf, FlaskConical, Shield,
   Camera, Trash2, Plus, Activity, Loader2, Edit2
 } from 'lucide-react';
+import CropWeatherPanel from '../../components/CropWeatherPanel';
+import PlantingCalendarCard from '../../components/PlantingCalendarCard';
+import CropProgressTracker from '../../components/CropProgressTracker';
+import { CloudSun } from 'lucide-react';
 
 const DISEASE_TYPES = [
   'Late Blight', 'Early Blight', 'Mosaic Virus',
@@ -426,7 +430,7 @@ const CropDetail = () => {
 
         {/* TABS */}
         <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit">
-          {['overview', 'activities', 'diseases'].map((tab) => (
+          {['overview', 'weather', 'calendar', 'activities', 'diseases'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -648,6 +652,41 @@ const CropDetail = () => {
             )}
           </div>
         )}
+
+        {/* ── WEATHER TAB ── */}
+        {activeTab === 'weather' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <CloudSun className="text-blue-500" size={20} />
+                Weather Alerts
+              </h3>
+              <CropWeatherPanel cropId={crop.id} />
+            </div>
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <TrendingUp className="text-green-600" size={20} />
+                Growth Progress
+              </h3>
+              <CropProgressTracker cropId={crop.id} />
+            </div>
+          </div>
+        )}
+
+        {/* ── CALENDAR TAB ── */}
+        {activeTab === 'calendar' && (
+          <div className="max-w-2xl">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <Calendar className="text-green-600" size={20} />
+                Planting Calendar
+              </h3>
+              <PlantingCalendarCard cropId={crop.id} />
+            </div>
+          </div>
+        )}
+
+
       </div>
 
       {/* ── EDIT CROP PANEL ── */}
