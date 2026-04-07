@@ -20,4 +20,8 @@ router.put('/:id', protect, farmController.updateFarm);
 // DELETE /api/farms/:id
 router.delete('/:id', protect, farmController.deleteFarm);
 
+//get user by id 
+router.get('/user/:userId', protect, farmController.getFarmsByUser);
+
+
 module.exports = router;

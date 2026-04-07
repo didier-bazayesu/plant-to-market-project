@@ -1,20 +1,21 @@
 const db = require('../models');
 
-// ─── GET ALL FARMS (for logged in user) ───────────────────────
+// ─── GET ALL FARMS ────────────────────────────────────────────
 exports.getFarms = async (req, res) => {
   try {
-
     // ✅ Admin sees ALL farms
     if (req.user.role === 'admin') {
       const farms = await db.Farm.findAll({
         include: [
           { model: db.Farmer, as: 'farmer', attributes: ['id', 'name', 'email'] },
-          { model: db.Crop, as: 'crops' }
+          { model: db.Crop, as: 'crops' },
+          { model: db.FarmLocation, as: 'gpsLocation' }, // ✅ added
         ]
       });
       return res.json({ success: true, farms });
     }
-    // 1. Find farmer profile for logged in user
+
+    // Farmer sees only their farms
     const farmer = await db.Farmer.findOne({
       where: { userId: req.user.id }
     });
@@ -23,20 +24,17 @@ exports.getFarms = async (req, res) => {
       return res.json({ success: true, farms: [] });
     }
 
-    // 2. Find all farms for this farmer
     const farms = await db.Farm.findAll({
       where: { farmerId: farmer.id },
       include: [
-        {
-          model: db.Farmer,
-          as: 'farmer',
-          attributes: ['id', 'name', 'email']
-        },
-        { model: db.Crop, as: 'crops' }
+        { model: db.Farmer, as: 'farmer', attributes: ['id', 'name', 'email'] },
+        { model: db.Crop, as: 'crops' },
+        { model: db.FarmLocation, as: 'gpsLocation' }, // ✅ already here
       ]
     });
 
     res.json({ success: true, farms });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -49,7 +47,8 @@ exports.getFarm = async (req, res) => {
     const farm = await db.Farm.findByPk(req.params.id, {
       include: [
         { model: db.Farmer, as: 'farmer', attributes: ['id', 'name', 'email'] },
-        { model: db.Crop, as: 'crops' }
+        { model: db.Crop, as: 'crops' },
+        { model: db.FarmLocation, as: 'gpsLocation' },
       ]
     });
     if (!farm) return res.status(404).json({ success: false, message: 'Farm not found' });
@@ -62,7 +61,6 @@ exports.getFarm = async (req, res) => {
 // ─── CREATE FARM ──────────────────────────────────────────────
 exports.createFarm = async (req, res) => {
   try {
-    // Find farmer profile for logged in user
     const farmer = await db.Farmer.findOne({
       where: { userId: req.user.id }
     });
@@ -74,13 +72,35 @@ exports.createFarm = async (req, res) => {
       });
     }
 
+    // ✅ Destructure coordinates out — don't spread them into Farm model
+    const { latitude, longitude, locationAccuracy, ...farmData } = req.body;
+
     const farm = await db.Farm.create({
-      ...req.body,
-      farmerId: farmer.id, // ✅ always link to logged in farmer
+      ...farmData,
+      farmerId: farmer.id,
+      locationAccuracy: locationAccuracy || 'district_fallback',
     });
 
-    res.status(201).json({ success: true, farm });
+    // ✅ Save coordinates to FarmLocation if provided
+    if (latitude && longitude) {
+      await db.FarmLocation.upsert({
+        farmId: farm.id,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+      });
+    }
+
+    // ✅ Return farm with gpsLocation so frontend mapFarm works correctly
+    const farmWithLocation = await db.Farm.findByPk(farm.id, {
+      include: [
+        { model: db.FarmLocation, as: 'gpsLocation' }
+      ]
+    });
+
+    res.status(201).json({ success: true, farm: farmWithLocation });
+
   } catch (err) {
+    console.error('createFarm error:', err);
     res.status(400).json({ success: false, message: err.message });
   }
 };
@@ -105,6 +125,37 @@ exports.deleteFarm = async (req, res) => {
     await farm.destroy();
     res.json({ success: true, message: 'Farm deleted' });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─── GET FARMS BY USER (admin use) ───────────────────────────
+exports.getFarmsByUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const farmer = await db.Farmer.findOne({
+      where: { userId },
+      include: [
+        {
+          model: db.Farm,
+          as: 'farms',
+          include: [
+            { model: db.Crop, as: 'crops' },
+            { model: db.FarmLocation, as: 'gpsLocation' }, // ✅ added
+          ]
+        }
+      ]
+    });
+
+    if (!farmer) {
+      return res.json({ success: true, farms: [] });
+    }
+
+    res.json({ success: true, farms: farmer.farms });
+
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

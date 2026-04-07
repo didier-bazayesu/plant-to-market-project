@@ -26,6 +26,14 @@ const adminRoutes = require('./routes/adminRoutes');
 console.log("Admin routes loaded:", !!adminRoutes); 
 app.use('/api/admin', adminRoutes);
 
+//weather routes 
+app.use('/api', require('./routes/weatherRoutes'));
+
+//weather location routes
+ app.use('/api/farms', require('./routes/farmLocationRoutes'));
+
+
+
 // 404 handler
 app.use((req, res, next) => {
   const error = new Error(`Route ${req.originalUrl} not found`);

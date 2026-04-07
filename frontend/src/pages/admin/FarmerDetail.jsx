@@ -78,6 +78,10 @@ const AdminFarmerDetail = () => {
         await fetchUser();
         setShowEditUser(false);
         showSuccess('User updated successfully');
+      }else {
+         const error = await res.json();
+         console.log("update failed", error);
+         showSuccess("failed to update  user")
       }
     } catch (err) { console.error(err); }
     finally { setEditUserLoading(false); }

@@ -8,8 +8,12 @@ import {
   Ruler, Calendar, TrendingUp, AlertTriangle,
   CheckCircle2, Clock, Layers, X, ChevronRight,
   Microscope, Leaf, FlaskConical, Shield,
-  Camera, Trash2, Plus, Activity
+  Camera, Trash2, Plus, Activity, Loader2, Edit2
 } from 'lucide-react';
+import CropWeatherPanel from '../../components/CropWeatherPanel';
+import PlantingCalendarCard from '../../components/PlantingCalendarCard';
+import CropProgressTracker from '../../components/CropProgressTracker';
+import { CloudSun } from 'lucide-react';
 
 const DISEASE_TYPES = [
   'Late Blight', 'Early Blight', 'Mosaic Virus',
@@ -18,8 +22,8 @@ const DISEASE_TYPES = [
 ];
 
 const SEVERITY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
-
 const ACTIVITY_TYPES = ['irrigation', 'fertilization', 'pesticide'];
+const CROP_STATUSES = ['planted', 'growing', 'harvested'];
 
 const getActivityStyle = (type) => {
   switch (type) {
@@ -37,19 +41,35 @@ const CropDetail = () => {
   const { crops, updateCrop, deleteCrop } = useCrops();
   const { getFarm } = useFarms();
 
-  const farm = getFarm(farmId);
+  const farm = getFarm(Number(farmId));
   const crop = crops.find(c => c.id === Number(cropId));
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showDiseaseForm, setShowDiseaseForm] = useState(false);
   const [showActivityForm, setShowActivityForm] = useState(false);
+  const [showEditCropForm, setShowEditCropForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // ─── EDIT CROP STATE ──────────────────────────────────────
+  const [editCropForm, setEditCropForm] = useState({
+    cropType: '',
+    variety: '',
+    plantingDate: '',
+    harvestDate: '',
+    status: '',
+    size: '',
+    progress: 0
+  });
+  const [editingCrop, setEditingCrop] = useState(false);
+  const [editCropSuccess, setEditCropSuccess] = useState(false);
+  const [editCropError, setEditCropError] = useState('');
 
   // ─── ACTIVITIES STATE ─────────────────────────────────────
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [submittingActivity, setSubmittingActivity] = useState(false);
   const [activitySuccess, setActivitySuccess] = useState(false);
+  const [activityError, setActivityError] = useState('');
 
   // ─── DISEASE STATE ────────────────────────────────────────
   const [diseaseForm, setDiseaseForm] = useState({
@@ -57,7 +77,10 @@ const CropDetail = () => {
     symptoms: '', treatment: '', notes: ''
   });
   const [diseaseReports, setDiseaseReports] = useState([]);
-  const [diseaseSubmitted, setDiseaseSubmitted] = useState(false);
+  const [loadingDiseases, setLoadingDiseases] = useState(true);
+  const [submittingDisease, setSubmittingDisease] = useState(false);
+  const [diseaseSuccess, setDiseaseSuccess] = useState(false);
+  const [diseaseError, setDiseaseError] = useState('');
 
   // ─── ACTIVITY FORM STATE ──────────────────────────────────
   const [activityForm, setActivityForm] = useState({
@@ -70,14 +93,17 @@ const CropDetail = () => {
   useEffect(() => {
     if (token && crop) {
       fetchActivities();
+      fetchDiseaseReports();
     }
   }, [token, crop]);
 
   const fetchActivities = async () => {
     try {
+      setLoadingActivities(true);
       const res = await fetch(`/api/activities?cropId=${crop.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('Failed to fetch activities');
       const data = await res.json();
       setActivities(data.activities || []);
     } catch (err) {
@@ -87,10 +113,98 @@ const CropDetail = () => {
     }
   };
 
+  const fetchDiseaseReports = async () => {
+    try {
+      setLoadingDiseases(true);
+      const res = await fetch(`/api/diseases?cropId=${crop.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch disease reports');
+      const data = await res.json();
+      setDiseaseReports(data.diseases || []);
+    } catch (err) {
+      console.error('fetchDiseaseReports error:', err);
+      setDiseaseReports([]);
+    } finally {
+      setLoadingDiseases(false);
+    }
+  };
+
+  // ─── EDIT CROP HANDLERS ───────────────────────────────────
+  const handleEditClick = () => {
+    setEditCropForm({
+      cropType: crop.name || '',
+      variety: crop.variety || '',
+      plantingDate: crop.plantingDate?.split('T')[0] || '',
+      harvestDate: crop.harvestDate?.split('T')[0] || '',
+      status: crop.status || 'planted',
+      size: crop.size || '',
+      progress: crop.progress || 0
+    });
+    setShowEditCropForm(true);
+  };
+
+  const handleUpdateCrop = async () => {
+    if (!editCropForm.cropType || !editCropForm.plantingDate) {
+      setEditCropError('Please fill in all required fields');
+      return;
+    }
+
+    setEditingCrop(true);
+    setEditCropError('');
+
+    try {
+      const res = await fetch(`/api/crops/${crop.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          cropType: editCropForm.cropType,
+          variety: editCropForm.variety,
+          plantingDate: editCropForm.plantingDate,
+          harvestDate: editCropForm.harvestDate,
+          status: editCropForm.status,
+          size: editCropForm.size,
+          progress: editCropForm.progress
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update crop');
+      }
+
+      await updateCrop(crop.id, {
+        name: editCropForm.cropType,
+        variety: editCropForm.variety,
+        plantingDate: editCropForm.plantingDate,
+        harvestDate: editCropForm.harvestDate,
+        status: editCropForm.status,
+        size: editCropForm.size,
+        progress: editCropForm.progress
+      });
+
+      setEditCropSuccess(true);
+      setTimeout(() => {
+        setEditCropSuccess(false);
+        setShowEditCropForm(false);
+      }, 1500);
+    } catch (err) {
+      console.error('handleUpdateCrop error:', err);
+      setEditCropError(err.message);
+    } finally {
+      setEditingCrop(false);
+    }
+  };
+
   // ─── LOG ACTIVITY ─────────────────────────────────────────
   const handleActivitySubmit = async () => {
     if (!activityForm.notes) return;
     setSubmittingActivity(true);
+    setActivityError('');
+    
     try {
       const res = await fetch('/api/activities', {
         method: 'POST',
@@ -105,8 +219,13 @@ const CropDetail = () => {
           notes: activityForm.notes
         })
       });
-      if (!res.ok) throw new Error('Failed to log activity');
-      await fetchActivities(); // refresh list
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to log activity');
+      }
+      
+      await fetchActivities();
       setActivitySuccess(true);
       setTimeout(() => {
         setActivitySuccess(false);
@@ -119,30 +238,72 @@ const CropDetail = () => {
       }, 1500);
     } catch (err) {
       console.error('handleActivitySubmit error:', err);
+      setActivityError(err.message);
     } finally {
       setSubmittingActivity(false);
     }
   };
 
-  // ─── DISEASE SUBMIT (local for now) ──────────────────────
-  const handleDiseaseSubmit = () => {
+  // ─── DISEASE SUBMIT ──────────────────────────────────────
+  const handleDiseaseSubmit = async () => {
     if (!diseaseForm.disease || !diseaseForm.symptoms) return;
-    const report = {
-      ...diseaseForm,
-      id: Date.now(),
-      date: new Date().toLocaleDateString(),
-      crop: crop.name,
-    };
-    setDiseaseReports(prev => [report, ...prev]);
-    if (diseaseForm.severity === 'High' || diseaseForm.severity === 'Critical') {
-      updateCrop(crop.id, { health: 'At Risk' });
+    setSubmittingDisease(true);
+    setDiseaseError('');
+    
+    try {
+      const res = await fetch('/api/diseases', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          cropId: crop.id,
+          disease: diseaseForm.disease,
+          severity: diseaseForm.severity,
+          affectedArea: diseaseForm.affectedArea,
+          symptoms: diseaseForm.symptoms,
+          treatment: diseaseForm.treatment,
+          notes: diseaseForm.notes,
+          date: new Date().toISOString().split('T')[0]
+        })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to submit disease report');
+      }
+      
+      await fetchDiseaseReports();
+      
+      if (diseaseForm.severity === 'High' || diseaseForm.severity === 'Critical') {
+        await updateCrop(crop.id, { health: 'At Risk' });
+      }
+      
+      setDiseaseSuccess(true);
+      setTimeout(() => {
+        setDiseaseSuccess(false);
+        setShowDiseaseForm(false);
+        setDiseaseForm({ 
+          disease: '', severity: 'Low', affectedArea: '', 
+          symptoms: '', treatment: '', notes: '' 
+        });
+      }, 1500);
+    } catch (err) {
+      console.error('handleDiseaseSubmit error:', err);
+      setDiseaseError(err.message);
+    } finally {
+      setSubmittingDisease(false);
     }
-    setDiseaseSubmitted(true);
-    setTimeout(() => {
-      setDiseaseSubmitted(false);
-      setShowDiseaseForm(false);
-      setDiseaseForm({ disease: '', severity: 'Low', affectedArea: '', symptoms: '', treatment: '', notes: '' });
-    }, 2000);
+  };
+
+  const handleDeleteCrop = async () => {
+    try {
+      await deleteCrop(crop.id);
+      navigate(`/my-farms/${farmId}`);
+    } catch (err) {
+      console.error('Delete crop error:', err);
+    }
   };
 
   const daysUntilHarvest = crop?.harvestDate
@@ -183,11 +344,17 @@ const CropDetail = () => {
               <h1 className="text-2xl font-black text-gray-900 tracking-tight">{crop.name}</h1>
               <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
                 <Layers size={13} className="text-green-600" />
-                {farm.name} • {crop.variety}
+                {farm.name} • {crop.variety || 'Unknown variety'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleEditClick}
+              className="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-2xl hover:bg-blue-100 transition-all flex items-center gap-2 font-black text-sm border border-blue-100"
+            >
+              <Edit2 size={16} /> Edit Crop
+            </button>
             <button
               onClick={() => setShowActivityForm(true)}
               className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2 font-black text-sm"
@@ -214,26 +381,30 @@ const CropDetail = () => {
 
         {/* CROP HERO */}
         <div className="relative h-52 md:h-64 rounded-[2rem] overflow-hidden shadow-xl">
-          <img src={crop.img} alt={crop.name} className="w-full h-full object-cover" />
+          <img 
+            src={crop.img || "https://images.unsplash.com/photo-1500076656116-558758c991c1?q=80&w=600"} 
+            alt={crop.name} 
+            className="w-full h-full object-cover" 
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           <span className={`absolute top-4 right-4 px-4 py-1.5 rounded-full text-xs font-black uppercase border ${
             crop.health === 'Healthy'
               ? 'bg-green-50 text-green-600 border-green-100'
               : 'bg-red-50 text-red-500 border-red-100 animate-pulse'
           }`}>
-            {crop.health}
+            {crop.health || 'Healthy'}
           </span>
           <div className="absolute bottom-4 left-6 right-6">
             <div className="flex justify-between text-white text-sm font-bold mb-2">
               <span>Growth Progress</span>
-              <span>{crop.progress}%</span>
+              <span>{crop.progress || 0}%</span>
             </div>
             <div className="h-2.5 bg-white/20 rounded-full">
               <div
                 className={`h-full rounded-full transition-all duration-1000 ${
                   crop.health === 'Healthy' ? 'bg-green-400' : 'bg-amber-400'
                 }`}
-                style={{ width: `${crop.progress}%` }}
+                style={{ width: `${crop.progress || 0}%` }}
               />
             </div>
           </div>
@@ -243,7 +414,7 @@ const CropDetail = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Days to Harvest', value: daysUntilHarvest !== null ? `${daysUntilHarvest}d` : '—', icon: Clock, color: 'bg-amber-50 text-amber-600', border: 'border-amber-100' },
-            { label: 'Field Size', value: crop.size ? `${crop.size}` : '—', icon: Ruler, color: 'bg-blue-50 text-blue-600', border: 'border-blue-100' },
+            { label: 'Field Size', value: crop.size ? `${crop.size} ha` : '—', icon: Ruler, color: 'bg-blue-50 text-blue-600', border: 'border-blue-100' },
             { label: 'Activities', value: activities.length, icon: Activity, color: 'bg-purple-50 text-purple-600', border: 'border-purple-100' },
             { label: 'Disease Reports', value: diseaseReports.length, icon: AlertTriangle, color: diseaseReports.length > 0 ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600', border: diseaseReports.length > 0 ? 'border-red-100' : 'border-green-100' },
           ].map((stat) => (
@@ -259,7 +430,7 @@ const CropDetail = () => {
 
         {/* TABS */}
         <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit">
-          {['overview', 'activities', 'diseases'].map((tab) => (
+          {['overview', 'weather', 'calendar', 'activities', 'diseases'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -292,12 +463,13 @@ const CropDetail = () => {
               <div className="space-y-3">
                 {[
                   { icon: Sprout, label: 'Crop Name', value: crop.name, color: 'text-green-500' },
-                  { icon: Leaf, label: 'Variety', value: crop.variety, color: 'text-green-400' },
-                  { icon: MapPin, label: 'Location', value: crop.location, color: 'text-blue-500' },
+                  { icon: Leaf, label: 'Variety', value: crop.variety || '—', color: 'text-green-400' },
+                  { icon: MapPin, label: 'Location', value: farm.location || '—', color: 'text-blue-500' },
                   { icon: Layers, label: 'Farm', value: farm.name, color: 'text-purple-500' },
-                  { icon: Ruler, label: 'Field Size', value: crop.size || '—', color: 'text-amber-500' },
-                  { icon: Droplets, label: 'Last Watered', value: crop.lastWatered, color: 'text-cyan-500' },
-                  { icon: FlaskConical, label: 'Soil Type', value: farm.soilType, color: 'text-orange-500' },
+                  { icon: Ruler, label: 'Field Size', value: crop.size ? `${crop.size} ha` : '—', color: 'text-amber-500' },
+                  { icon: Calendar, label: 'Planting Date', value: crop.plantingDate ? new Date(crop.plantingDate).toLocaleDateString() : '—', color: 'text-cyan-500' },
+                  { icon: Calendar, label: 'Harvest Date', value: crop.harvestDate ? new Date(crop.harvestDate).toLocaleDateString() : '—', color: 'text-orange-500' },
+                  { icon: TrendingUp, label: 'Status', value: crop.status || '—', color: 'text-emerald-500' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl">
                     <item.icon size={16} className={item.color} />
@@ -385,7 +557,7 @@ const CropDetail = () => {
 
             {loadingActivities ? (
               <div className="bg-white rounded-[2rem] p-10 text-center border border-gray-100">
-                <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <Loader2 size={32} className="text-green-600 animate-spin mx-auto" />
               </div>
             ) : activities.length === 0 ? (
               <div className="bg-white rounded-[2rem] p-14 text-center border border-gray-100">
@@ -434,7 +606,11 @@ const CropDetail = () => {
               </button>
             </div>
 
-            {diseaseReports.length === 0 ? (
+            {loadingDiseases ? (
+              <div className="bg-white rounded-[2rem] p-10 text-center border border-gray-100">
+                <Loader2 size={32} className="text-green-600 animate-spin mx-auto" />
+              </div>
+            ) : diseaseReports.length === 0 ? (
               <div className="bg-white rounded-[2rem] p-14 text-center border border-gray-100 shadow-sm">
                 <CheckCircle2 size={40} className="text-green-200 mx-auto mb-4" />
                 <p className="font-black text-gray-400 text-lg">No diseases reported</p>
@@ -476,13 +652,219 @@ const CropDetail = () => {
             )}
           </div>
         )}
+
+        {/* ── WEATHER TAB ── */}
+        {activeTab === 'weather' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <CloudSun className="text-blue-500" size={20} />
+                Weather Alerts
+              </h3>
+              <CropWeatherPanel cropId={crop.id} />
+            </div>
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <TrendingUp className="text-green-600" size={20} />
+                Growth Progress
+              </h3>
+              <CropProgressTracker cropId={crop.id} />
+            </div>
+          </div>
+        )}
+
+        {/* ── CALENDAR TAB ── */}
+        {activeTab === 'calendar' && (
+          <div className="max-w-2xl">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+              <h3 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2">
+                <Calendar className="text-green-600" size={20} />
+                Planting Calendar
+              </h3>
+              <PlantingCalendarCard cropId={crop.id} />
+            </div>
+          </div>
+        )}
+
+
       </div>
+
+      {/* ── EDIT CROP PANEL ── */}
+      <>
+        <div
+          className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-500 ${showEditCropForm ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          onClick={() => !editingCrop && setShowEditCropForm(false)}
+        />
+        <div className={`
+          fixed z-50 bg-white shadow-2xl flex flex-col
+          inset-x-0 bottom-0 top-[5%] rounded-t-[2.5rem]
+          md:inset-y-0 md:top-0 md:right-0 md:left-auto md:w-[500px] md:rounded-none md:rounded-l-[2.5rem]
+          transform transition-transform duration-500 ease-in-out
+          ${showEditCropForm ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'}
+        `}>
+          <div className="flex justify-center pt-4 pb-1 md:hidden">
+            <div className="w-10 h-1 bg-gray-200 rounded-full" />
+          </div>
+          <div className="px-8 pt-6 pb-5 border-b border-gray-100 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-50 p-2 rounded-xl">
+                <Edit2 className="text-blue-600" size={18} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-gray-900">Edit Crop</h2>
+                <p className="text-sm text-gray-400 font-medium">Update crop details</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => !editingCrop && setShowEditCropForm(false)} 
+              className="p-2 hover:bg-gray-100 rounded-full"
+              disabled={editingCrop}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {editCropSuccess ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+              <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center">
+                <CheckCircle2 size={40} className="text-green-600" />
+              </div>
+              <h3 className="text-xl font-black text-gray-900">Crop Updated!</h3>
+              <p className="text-sm text-gray-400 font-medium text-center">Crop details updated successfully.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+                {editCropError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-sm font-bold text-red-600">
+                    ⚠ {editCropError}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Crop Name *</label>
+                  <input
+                    type="text"
+                    value={editCropForm.cropType}
+                    onChange={(e) => setEditCropForm({ ...editCropForm, cropType: e.target.value })}
+                    placeholder="e.g. Maize"
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Variety</label>
+                  <input
+                    type="text"
+                    value={editCropForm.variety}
+                    onChange={(e) => setEditCropForm({ ...editCropForm, variety: e.target.value })}
+                    placeholder="e.g. Hybrid H624"
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Planting Date *</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
+                    <input
+                      type="date"
+                      value={editCropForm.plantingDate}
+                      onChange={(e) => setEditCropForm({ ...editCropForm, plantingDate: e.target.value })}
+                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Harvest Date</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-4 text-gray-300" size={16} />
+                    <input
+                      type="date"
+                      value={editCropForm.harvestDate}
+                      onChange={(e) => setEditCropForm({ ...editCropForm, harvestDate: e.target.value })}
+                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Field Size (ha)</label>
+                  <div className="relative">
+                    <Ruler className="absolute left-4 top-4 text-gray-300" size={16} />
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editCropForm.size}
+                      onChange={(e) => setEditCropForm({ ...editCropForm, size: e.target.value })}
+                      placeholder="e.g. 2.5"
+                      className="w-full p-4 pl-11 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Growth Status</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {CROP_STATUSES.map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setEditCropForm({ ...editCropForm, status })}
+                        className={`py-3 rounded-2xl text-xs font-black capitalize transition-all border ${
+                          editCropForm.status === status
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-500 border-gray-100 hover:border-blue-200'
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Growth Progress (%)</label>
+                  <div className="relative">
+                    <TrendingUp className="absolute left-4 top-4 text-gray-300" size={16} />
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={editCropForm.progress}
+                      onChange={(e) => setEditCropForm({ ...editCropForm, progress: parseInt(e.target.value) })}
+                      className="w-full"
+                    />
+                    <div className="text-center mt-2 text-sm font-black text-gray-700">
+                      {editCropForm.progress}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 py-5 border-t border-gray-100">
+                <button
+                  onClick={handleUpdateCrop}
+                  disabled={editingCrop || !editCropForm.cropType || !editCropForm.plantingDate}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+                >
+                  {editingCrop ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>Update Crop <ChevronRight size={16} /></>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </>
 
       {/* ── DISEASE REPORT PANEL ── */}
       <>
         <div
           className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-500 ${showDiseaseForm ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          onClick={() => setShowDiseaseForm(false)}
+          onClick={() => !submittingDisease && setShowDiseaseForm(false)}
         />
         <div className={`
           fixed z-50 bg-white shadow-2xl flex flex-col
@@ -504,22 +886,32 @@ const CropDetail = () => {
                 <p className="text-sm text-gray-400 font-medium">{crop.name} — {farm.name}</p>
               </div>
             </div>
-            <button onClick={() => setShowDiseaseForm(false)} className="p-2 hover:bg-gray-100 rounded-full">
+            <button 
+              onClick={() => !submittingDisease && setShowDiseaseForm(false)} 
+              className="p-2 hover:bg-gray-100 rounded-full"
+              disabled={submittingDisease}
+            >
               <X size={20} />
             </button>
           </div>
 
-          {diseaseSubmitted ? (
+          {diseaseSuccess ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
               <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center">
                 <CheckCircle2 size={40} className="text-green-600" />
               </div>
-              <h3 className="text-xl font-black text-gray-900">Report Submitted</h3>
+              <h3 className="text-xl font-black text-gray-900">Report Submitted!</h3>
               <p className="text-sm text-gray-400 font-medium text-center">Disease report logged successfully.</p>
             </div>
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+                {diseaseError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-sm font-bold text-red-600">
+                    ⚠ {diseaseError}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Disease Type</label>
                   <div className="relative">
@@ -579,21 +971,21 @@ const CropDetail = () => {
                     className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-400 outline-none text-gray-800 text-sm resize-none"
                   />
                 </div>
-
-                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center">
-                  <Camera size={24} className="text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm font-black text-gray-400">Upload Photo</p>
-                  <p className="text-xs text-gray-300 font-medium mt-1">Photo upload available in Phase 3</p>
-                </div>
               </div>
 
               <div className="px-8 py-5 border-t border-gray-100">
                 <button
                   onClick={handleDiseaseSubmit}
-                  disabled={!diseaseForm.disease || !diseaseForm.symptoms}
-                  className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+                  disabled={!diseaseForm.disease || !diseaseForm.symptoms || submittingDisease}
+                  className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
                 >
-                  <AlertTriangle size={16} /> Submit Disease Report
+                  {submittingDisease ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      <AlertTriangle size={16} /> Submit Disease Report
+                    </>
+                  )}
                 </button>
               </div>
             </>
@@ -601,11 +993,11 @@ const CropDetail = () => {
         </div>
       </>
 
-      {/* ── LOG ACTIVITY PANEL ── */}
+      {/* ── ACTIVITY PANEL ── */}
       <>
         <div
           className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-500 ${showActivityForm ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          onClick={() => setShowActivityForm(false)}
+          onClick={() => !submittingActivity && setShowActivityForm(false)}
         />
         <div className={`
           fixed z-50 bg-white shadow-2xl flex flex-col
@@ -627,7 +1019,11 @@ const CropDetail = () => {
                 <p className="text-sm text-gray-400 font-medium">{crop.name}</p>
               </div>
             </div>
-            <button onClick={() => setShowActivityForm(false)} className="p-2 hover:bg-gray-100 rounded-full">
+            <button 
+              onClick={() => !submittingActivity && setShowActivityForm(false)} 
+              className="p-2 hover:bg-gray-100 rounded-full"
+              disabled={submittingActivity}
+            >
               <X size={20} />
             </button>
           </div>
@@ -643,6 +1039,12 @@ const CropDetail = () => {
           ) : (
             <>
               <div className="flex-1 px-8 py-6 space-y-5 overflow-y-auto">
+                {activityError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-sm font-bold text-red-600">
+                    ⚠ {activityError}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-gray-400 tracking-widest">Activity Type</label>
                   <div className="grid grid-cols-3 gap-2">
@@ -691,12 +1093,14 @@ const CropDetail = () => {
                 <button
                   onClick={handleActivitySubmit}
                   disabled={!activityForm.notes || submittingActivity}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-100 disabled:text-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
                 >
                   {submittingActivity ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 size={20} className="animate-spin" />
                   ) : (
-                    <> Log Activity <ChevronRight size={16} /> </>
+                    <>
+                      <Activity size={16} /> Log Activity
+                    </>
                   )}
                 </button>
               </div>
@@ -724,10 +1128,7 @@ const CropDetail = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  deleteCrop(crop.id);
-                  navigate(`/my-farms/${farmId}`);
-                }}
+                onClick={handleDeleteCrop}
                 className="flex-1 py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black text-sm"
               >
                 Yes, Delete
@@ -736,7 +1137,6 @@ const CropDetail = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
