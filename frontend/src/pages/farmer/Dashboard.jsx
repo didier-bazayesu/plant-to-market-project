@@ -1,18 +1,36 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCrops } from '../../context/CropContext';
+import { useFarms } from '../../context/FarmContext';
 import {
   Sprout, MapPin, TrendingUp,
   AlertTriangle, CheckCircle2, ArrowRight,
-  Droplets, Plus, Layers
+  Droplets, Plus, Layers, Navigation, CheckCircle, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { marketPrices } from '../../data/mockData';
 import WeatherWidget from '../../components/WeatherWidget';
+import GPSPermissionBanner from '../../components/GPSPermissionBanner';
+import AddFarmForm from '../../components/AddFormFarm';
+import { useGPSLocation } from '../../hooks/useGPSLocation';
 
 const FarmerDashboard = () => {
   const { farmer } = useAuth();
   const { crops } = useCrops();
+  const { farms, fetchFarms } = useFarms();
   const navigate = useNavigate();
+  
+  // State for Add Farm modal
+  const [showAddFarm, setShowAddFarm] = useState(false);
+  
+  // State for GPS banner visibility
+  const [showGPSBanner, setShowGPSBanner] = useState(false);
+  const [currentFarm, setCurrentFarm] = useState(null);
+  const [dismissedFarms, setDismissedFarms] = useState(() => {
+    // Load dismissed farms from localStorage
+    const saved = localStorage.getItem('dismissedGPSFarms');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // ─── STATS ────────────────────────────────────────────────
   const totalCrops = crops.length;
@@ -20,8 +38,54 @@ const FarmerDashboard = () => {
   const atRiskCrops = crops.filter(c => c.health === 'At Risk').length;
   const readyToHarvest = crops.filter(c => c.progress >= 80).length;
   const recentCrops = crops.slice(0, 3);
-  const gethours = new Date().getHours()
+  const gethours = new Date().getHours();
 
+  // Check if any farm needs GPS
+  useEffect(() => {
+    const checkFarmsForGPS = async () => {
+      await fetchFarms(); // Ensure farms are loaded
+      
+      // Find the first farm without GPS coordinates and not dismissed
+      const farmWithoutGPS = farms.find(farm => 
+        (!farm.latitude || !farm.longitude) && 
+        !dismissedFarms.includes(farm.id)
+      );
+      
+      if (farmWithoutGPS) {
+        setCurrentFarm(farmWithoutGPS);
+        setShowGPSBanner(true);
+      } else {
+        setShowGPSBanner(false);
+        setCurrentFarm(null);
+      }
+    };
+    
+    if (farms.length > 0) {
+      checkFarmsForGPS();
+    }
+  }, [farms, dismissedFarms, fetchFarms]);
+
+  // Handle GPS success - mark farm as having coordinates
+  const handleGPSSuccess = (farmId, coordinates) => {
+    setShowGPSBanner(false);
+    setCurrentFarm(null);
+    fetchFarms(); // Refresh farms to get updated coordinates
+  };
+
+  // Handle dismiss - never show again for this farm
+  const handleDismiss = (farmId) => {
+    const newDismissed = [...dismissedFarms, farmId];
+    setDismissedFarms(newDismissed);
+    localStorage.setItem('dismissedGPSFarms', JSON.stringify(newDismissed));
+    setShowGPSBanner(false);
+    setCurrentFarm(null);
+  };
+
+  // Handle successful farm addition
+  const handleFarmAdded = () => {
+    setShowAddFarm(false);
+    fetchFarms(); // Refresh farms list
+  };
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20">
@@ -31,7 +95,7 @@ const FarmerDashboard = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-             {gethours >  11 &&gethours <18 ? "Good Afternoon" : gethours >18 ? "Good Evening" : "Good Morning"} {farmer?.name?.split(' ')[0]} 👋
+             {gethours > 11 && gethours < 18 ? "Good Afternoon" : gethours > 18 ? "Good Evening" : "Good Morning"} {farmer?.name?.split(' ')[0]} 👋
             </h1>
             <p className="text-sm text-gray-500 font-medium flex items-center gap-1">
               <MapPin size={14} className="text-green-600" />
@@ -46,6 +110,12 @@ const FarmerDashboard = () => {
               <Plus size={16} /> Register Crop
             </button>
             <button
+              onClick={() => setShowAddFarm(true)}
+              className="bg-blue-600 text-white px-5 py-3 rounded-2xl shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2 font-black text-sm"
+            >
+              <Plus size={16} /> Add Farm
+            </button>
+            <button
               onClick={() => navigate('/my-farms')}
               className="bg-white border border-gray-200 text-gray-700 px-5 py-3 rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2 font-black text-sm"
             >
@@ -56,6 +126,18 @@ const FarmerDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+
+        {/* GPS PERMISSION BANNER - Only shows for farms without coordinates */}
+        {showGPSBanner && currentFarm && (
+          <div className="relative">
+            <GPSPermissionBanner
+              farmId={currentFarm.id}
+              farmName={currentFarm.name}
+              onSuccess={handleGPSSuccess}
+              onDismiss={() => handleDismiss(currentFarm.id)}
+            />
+          </div>
+        )}
 
         {/* QUICK STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -80,7 +162,7 @@ const FarmerDashboard = () => {
           {/* MAIN COLUMN */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* ✅ REAL WEATHER — replaces hardcoded weatherData */}
+            {/* WEATHER WIDGET */}
             <WeatherWidget district={farmer?.district} />
 
             {/* RECENT CROPS */}
@@ -243,6 +325,14 @@ const FarmerDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* ADD FARM MODAL */}
+      {showAddFarm && (
+        <AddFarmForm
+          onClose={() => setShowAddFarm(false)}
+          onSuccess={handleFarmAdded}
+        />
+      )}
     </div>
   );
 };
