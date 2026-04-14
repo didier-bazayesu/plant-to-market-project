@@ -1,24 +1,16 @@
 // backend/services/plantingCalendar.js
-// Calculates planting windows, harvest ETA, and season compatibility
-// for Rwanda's three agricultural seasons.
-// Reads from cropRequirements.js. No weather dependency — pure calendar logic.
-
 'use strict';
 
-const { getCropRequirements, isSeasonValid } = require('../data/cropRequirements');
+const { getCropRequirements } = require('../data/cropRequirements');
 
-// ─── RWANDA SEASONS ───────────────────────────────────────────────────────────
-// Season A: September – February (long rains)
-// Season B: March – June (short rains)
-// Season C: July – August (limited, high altitude or irrigated only)
-
+// ─── RWANDA SEASONS ───────────────────────────────────────────
 const SEASONS = {
   A: {
     name: 'Season A',
     description: 'Long rains — September to February',
-    startMonth: 9,   // September
-    endMonth: 2,     // February (crosses year boundary)
-    plantingWindowStart: { month: 9, day: 1  },
+    startMonth: 9,
+    endMonth: 2,
+    plantingWindowStart: { month: 9,  day: 1  },
     plantingWindowEnd:   { month: 10, day: 31 },
     peakPlantingMonth: 9,
   },
@@ -42,45 +34,87 @@ const SEASONS = {
   },
 };
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
+// ─── HELPERS ──────────────────────────────────────────────────
 
-// Get current season based on today's month
 function getCurrentSeason() {
-  const month = new Date().getMonth() + 1; // 1–12
-
+  const month = new Date().getMonth() + 1;
   if (month >= 9 || month <= 2) return 'A';
   if (month >= 3 && month <= 6) return 'B';
   return 'C';
 }
 
-// Get the next occurrence of a specific month/day from a reference date
-function getNextDate(month, day, fromDate = new Date()) {
-  const year = fromDate.getFullYear();
-  let target = new Date(year, month - 1, day);
-  if (target <= fromDate) {
-    target = new Date(year + 1, month - 1, day);
-  }
-  return target;
-}
-
-// Add days to a date
 function addDays(date, days) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
 }
 
-// Format date as YYYY-MM-DD
 function formatDate(date) {
   return date.toISOString().split('T')[0];
 }
 
-// Days between two dates
 function daysBetween(a, b) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-// ─── PLANTING WINDOWS ─────────────────────────────────────────────────────────
+// ─── RESOLVE WINDOW DATES FOR A SEASON ────────────────────────
+// Returns { windowStart, windowEnd } correctly accounting for
+// Season A crossing the year boundary and whether we are
+// currently inside the window or looking at a future one.
+
+function resolveWindowDates(seasonKey, season, today) {
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+
+  let windowStart, windowEnd;
+
+  if (seasonKey === 'A') {
+    // Season A: Sep 1 – Oct 31 planting window, season runs Sep–Feb
+    if (currentMonth >= 9) {
+      // Sep–Dec: window started this year, ends this year
+      windowStart = new Date(currentYear, 8, 1);   // Sep 1
+      windowEnd   = new Date(currentYear, 9, 31);  // Oct 31
+    } else if (currentMonth <= 2) {
+      // Jan–Feb: we are inside Season A, window started last year
+      windowStart = new Date(currentYear - 1, 8, 1);  // Sep 1 last year
+      windowEnd   = new Date(currentYear - 1, 9, 31); // Oct 31 last year
+    } else {
+      // Mar–Aug: Season A hasn't started yet this year
+      windowStart = new Date(currentYear, 8, 1);   // Sep 1 this year
+      windowEnd   = new Date(currentYear, 9, 31);  // Oct 31 this year
+    }
+  } else {
+    // Season B and C: simple same-year windows
+    windowStart = new Date(
+      currentYear,
+      season.plantingWindowStart.month - 1,
+      season.plantingWindowStart.day
+    );
+    windowEnd = new Date(
+      currentYear,
+      season.plantingWindowEnd.month - 1,
+      season.plantingWindowEnd.day
+    );
+
+    // ✅ If window has completely passed this year, move to next year
+    if (windowEnd < today) {
+      windowStart = new Date(
+        currentYear + 1,
+        season.plantingWindowStart.month - 1,
+        season.plantingWindowStart.day
+      );
+      windowEnd = new Date(
+        currentYear + 1,
+        season.plantingWindowEnd.month - 1,
+        season.plantingWindowEnd.day
+      );
+    }
+  }
+
+  return { windowStart, windowEnd };
+}
+
+// ─── PLANTING WINDOWS ─────────────────────────────────────────
 
 function getPlantingWindows(cropType) {
   const requirements = getCropRequirements(cropType);
@@ -93,28 +127,21 @@ function getPlantingWindows(cropType) {
     const season = SEASONS[seasonKey];
     if (!season) continue;
 
-    // Build next planting window start date
-    const windowStart = getNextDate(
-      season.plantingWindowStart.month,
-      season.plantingWindowStart.day,
-      today
-    );
-    const windowEnd = new Date(
-      windowStart.getFullYear(),
-      season.plantingWindowEnd.month - 1,
-      season.plantingWindowEnd.day
-    );
+    const { windowStart, windowEnd } = resolveWindowDates(seasonKey, season, today);
 
-    // If window end is before start (season A crosses year), push end to next year
-    if (windowEnd < windowStart) {
-      windowEnd.setFullYear(windowEnd.getFullYear() + 1);
-    }
-
-    const daysUntilWindow = daysBetween(today, windowStart);
+    // ✅ Is today inside this planting window?
     const isWindowOpen = today >= windowStart && today <= windowEnd;
 
-    // Harvest ETA from peak planting date
-    const peakPlantingDate = getNextDate(season.peakPlantingMonth, 1, today);
+    // ✅ Days until window opens (0 if already open)
+    const daysUntilWindow = isWindowOpen ? 0 : daysBetween(today, windowStart);
+
+    // ✅ Peak planting date is always in the same year as windowStart
+    const peakPlantingDate = new Date(
+      windowStart.getFullYear(),
+      season.peakPlantingMonth - 1,
+      1
+    );
+
     const earliestHarvest = addDays(peakPlantingDate, requirements.daysToHarvest.min);
     const latestHarvest   = addDays(peakPlantingDate, requirements.daysToHarvest.max);
 
@@ -126,7 +153,7 @@ function getPlantingWindows(cropType) {
       plantingWindowEnd:   formatDate(windowEnd),
       peakPlantingDate:    formatDate(peakPlantingDate),
       isWindowOpen,
-      daysUntilWindow: isWindowOpen ? 0 : daysUntilWindow,
+      daysUntilWindow,
       estimatedHarvest: {
         earliest: formatDate(earliestHarvest),
         latest:   formatDate(latestHarvest),
@@ -136,7 +163,7 @@ function getPlantingWindows(cropType) {
     });
   }
 
-  // Sort — open windows first, then by days until window
+  // Open windows first, then soonest upcoming
   windows.sort((a, b) => {
     if (a.isWindowOpen && !b.isWindowOpen) return -1;
     if (!a.isWindowOpen && b.isWindowOpen) return 1;
@@ -146,8 +173,7 @@ function getPlantingWindows(cropType) {
   return windows;
 }
 
-// ─── HARVEST ETA FOR PLANTED CROP ────────────────────────────────────────────
-// For a crop already in the ground — calculates ETA from actual planting date
+// ─── HARVEST ETA FOR PLANTED CROP ────────────────────────────
 
 function getHarvestETA(crop) {
   const requirements = getCropRequirements(crop.cropType);
@@ -160,38 +186,41 @@ function getHarvestETA(crop) {
     };
   }
 
-  const plantingDate   = new Date(crop.plantingDate);
-  const today          = new Date();
+  const plantingDate    = new Date(crop.plantingDate);
+  const today           = new Date();
   const earliestHarvest = addDays(plantingDate, requirements.daysToHarvest.min);
   const latestHarvest   = addDays(plantingDate, requirements.daysToHarvest.max);
-  const daysPlanted    = daysBetween(plantingDate, today);
-  const daysToEarliest = daysBetween(today, earliestHarvest);
-  const daysToLatest   = daysBetween(today, latestHarvest);
+  const daysPlanted     = daysBetween(plantingDate, today);
+  const daysToEarliest  = daysBetween(today, earliestHarvest);
+  const daysToLatest    = daysBetween(today, latestHarvest);
 
-  // Progress as percentage through growing period
-  const totalDays = requirements.daysToHarvest.max;
+  const totalDays   = requirements.daysToHarvest.max;
   const progressPct = Math.min(100, Math.round((daysPlanted / totalDays) * 100));
 
+  // ✅ Stage thresholds
   let stage;
-  const pct = progressPct;
-  if (pct < 15)       stage = 'germination';
-  else if (pct < 35)  stage = 'vegetative';
-  else if (pct < 60)  stage = 'flowering';
-  else if (pct < 80)  stage = 'grain_fill';
-  else if (pct < 100) stage = 'maturation';
-  else                stage = 'ready_to_harvest';
+  if (progressPct < 15)      stage = 'germination';
+  else if (progressPct < 35) stage = 'vegetative';
+  else if (progressPct < 60) stage = 'flowering';
+  else if (progressPct < 80) stage = 'grain_fill';
+  else if (progressPct < 100) stage = 'maturation';
+  else                        stage = 'ready_to_harvest';
 
   const isReadyToHarvest = today >= earliestHarvest;
   const isOverdue        = today > latestHarvest;
 
+  // ✅ Override stage if actually ready or overdue
+  if (isOverdue)        stage = 'ready_to_harvest';
+  if (isReadyToHarvest && !isOverdue) stage = 'ready_to_harvest';
+
   return {
     available: true,
-    plantingDate:     formatDate(plantingDate),
+    plantingDate:          formatDate(plantingDate),
     daysPlanted,
     progressPct,
     stage,
-    earliestHarvest:  formatDate(earliestHarvest),
-    latestHarvest:    formatDate(latestHarvest),
+    earliestHarvest:       formatDate(earliestHarvest),
+    latestHarvest:         formatDate(latestHarvest),
     daysToEarliestHarvest: Math.max(0, daysToEarliest),
     daysToLatestHarvest:   Math.max(0, daysToLatest),
     isReadyToHarvest,
@@ -204,7 +233,7 @@ function getHarvestETA(crop) {
   };
 }
 
-// ─── SEASON SUMMARY ───────────────────────────────────────────────────────────
+// ─── SEASON SUMMARY ───────────────────────────────────────────
 
 function getSeasonSummary() {
   const currentSeason = getCurrentSeason();
