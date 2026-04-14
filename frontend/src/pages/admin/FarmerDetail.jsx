@@ -47,18 +47,19 @@ const AdminFarmerDetail = () => {
   useEffect(() => { fetchUser(); }, [id]);
 
   const fetchUser = async () => {
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setUser(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    // ✅ was: setUser(data) — wrong, sets entire response object
+    setUser(data.user);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
