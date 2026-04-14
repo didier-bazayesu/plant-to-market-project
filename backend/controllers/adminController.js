@@ -1,23 +1,25 @@
-const { User, Farmer, Farm, Crop, Activity } = require('../models');
+const db = require('../models');
 
+// ─── GET ALL USERS ────────────────────────────────────────────
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.findAll({
+    const users = await db.User.findAll({
       attributes: { exclude: ['password'] },
       include: [
         {
-          model: Farmer,
+          model: db.Farmer,
           as: 'farmerProfile',
           include: [
             {
-              model: Farm,
+              model: db.Farm,
               as: 'farms',
               include: [
+                { model: db.FarmLocation, as: 'gpsLocation' },
                 {
-                  model: Crop,
+                  model: db.Crop,
                   as: 'crops',
                   include: [
-                    { model: Activity, as: 'activities' }
+                    { model: db.Activity, as: 'activities' }
                   ]
                 }
               ]
@@ -28,31 +30,34 @@ exports.getAllUsers = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    res.json(users);
+    // ✅ Consistent response format
+    res.json({ success: true, users });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
+// ─── GET SINGLE USER WITH FULL NESTED DATA ────────────────────
 exports.getUserDetails = async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.id, {
+    const user = await db.User.findByPk(req.params.id, {
       attributes: { exclude: ['password'] },
       include: [
         {
-          model: Farmer,
+          model: db.Farmer,
           as: 'farmerProfile',
           include: [
             {
-              model: Farm,
+              model: db.Farm,
               as: 'farms',
               include: [
+                { model: db.FarmLocation, as: 'gpsLocation' },
                 {
-                  model: Crop,
+                  model: db.Crop,
                   as: 'crops',
                   include: [
-                    { model: Activity, as: 'activities' }
+                    { model: db.Activity, as: 'activities' }
                   ]
                 }
               ]
@@ -61,58 +66,56 @@ exports.getUserDetails = async (req, res) => {
         }
       ]
     });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-exports.updateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, phone, district } = req.body;
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
-    await User.update(
-      { name, email, district },
-      { where: { id } }
-    );
-
-    await Farmer.update(
-      { name, email, phone },
-      { where: { userId: id } }
-    );
-
-    res.json({ success: true, message: "User and Farmer profile updated successfully" });
+    // ✅ Consistent response format
+    res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
+// ─── UPDATE USER ──────────────────────────────────────────────
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, district } = req.body;
+
+    // ✅ Update User — include phone
+    await db.User.update(
+      { name, email, phone, district },
+      { where: { id } }
+    );
+
+    // ✅ Update Farmer profile if exists
+    await db.Farmer.update(
+      { name, email, phone },
+      { where: { userId: id } }
+    );
+
+    res.json({ success: true, message: 'User updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ─── DELETE USER ──────────────────────────────────────────────
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const farmer = await Farmer.findOne({ where: { userId: id } });
-    if (farmer) {
-      const farms = await Farm.findAll({ where: { farmerId: farmer.id } });
-      for (const farm of farms) {
-        const crops = await Crop.findAll({ where: { farmId: farm.id } });
-        for (const crop of crops) {
-          await Activity.destroy({ where: { cropId: crop.id } });
-        }
-        await Crop.destroy({ where: { farmId: farm.id } });
-      }
-      await Farm.destroy({ where: { farmerId: farmer.id } });
-      await Farmer.destroy({ where: { id: farmer.id } });
-    }
+    // ✅ DB cascade handles Farmer → Farm → FarmLocation → Crop → Activity
+    // Just delete the User and everything cascades automatically
+    const deleted = await db.User.destroy({ where: { id } });
 
-    const deleted = await User.destroy({ where: { id } });
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.json({ success: true, message: "User and all associated data wiped successfully" });
+    res.json({ success: true, message: 'User and all associated data deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
