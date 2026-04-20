@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import MapPicker from '../../components/MapPicker';
+import { Navigation, Map } from 'lucide-react';
 import {
   ArrowLeft, MapPin, Mail, Phone, Layers,
   Sprout, Ruler, FlaskConical, Droplets,
@@ -43,6 +45,11 @@ const AdminFarmerDetail = () => {
   // ─── DELETE STATE ─────────────────────────────────────────
   const [confirmDelete, setConfirmDelete] = useState(null); // { type: 'farm', id }
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  //________District fallback ______________________
+
+  const [locationMethod, setLocationMethod] = useState('district');
+
 
   useEffect(() => { fetchUser(); }, [id]);
 
@@ -424,6 +431,75 @@ const AdminFarmerDetail = () => {
                 <ChevronRight size={16} className="absolute right-4 top-4 text-gray-300 rotate-90 pointer-events-none" />
               </div>
             </div>
+            
+            {/* Location accuracy */}
+            <div className="space-y-3">
+              <label className="text-xs font-black uppercase text-gray-400 tracking-widest">
+                Update Farm Location
+              </label>
+              <p className="text-xs text-gray-400">
+                Current accuracy: <span className={`font-bold ${
+                  editFarm?.locationAccuracy === 'gps_at_farm' ? 'text-green-600' :
+                  editFarm?.locationAccuracy === 'map_pin' ? 'text-blue-600' :
+                  'text-amber-600'
+                }`}>{editFarm?.locationAccuracy || 'district_fallback'}</span>
+              </p>
+
+              {/* Location method selector */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { key: 'map', label: 'Map Pin' },
+                  { key: 'district', label: 'Keep Current' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setLocationMethod(key)}
+                    className={`py-2.5 rounded-xl text-xs font-black border transition-all ${
+                      locationMethod === key
+                        ? 'border-amber-500 bg-amber-50 text-amber-700'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Map picker */}
+              {locationMethod === 'map' && (
+                <div className="space-y-2">
+                  <MapPicker
+                    initialLat={
+                      editFarm?.gpsLocation?.latitude
+                        ? parseFloat(editFarm.gpsLocation.latitude)
+                        : -1.9403
+                    }
+                    initialLng={
+                      editFarm?.gpsLocation?.longitude
+                        ? parseFloat(editFarm.gpsLocation.longitude)
+                        : 29.8739
+                    }
+                    onLocationSelect={(lat, lng) => {
+                      if (lat && lng) {
+                        setEditFarmForm({
+                          ...editFarmForm,
+                          latitude: lat,
+                          longitude: lng,
+                          locationAccuracy: 'map_pin',
+                        });
+                      }
+                    }}
+                    height="250px"
+                  />
+                  {editFarmForm.latitude && (
+                    <p className="text-xs text-green-600 font-bold">
+                      ✅ {parseFloat(editFarmForm.latitude).toFixed(6)}, {parseFloat(editFarmForm.longitude).toFixed(6)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="px-8 py-5 border-t border-gray-100">
             <button onClick={handleUpdateFarm} disabled={editFarmLoading}
@@ -431,6 +507,7 @@ const AdminFarmerDetail = () => {
               {editFarmLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>Save Farm <ChevronRight size={16} /></>}
             </button>
           </div>
+
         </div>
       </>
 
