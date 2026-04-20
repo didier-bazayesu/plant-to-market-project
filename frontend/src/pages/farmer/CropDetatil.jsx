@@ -447,6 +447,7 @@ const CropDetail = () => {
               {tab === 'diseases' && diseaseReports.length > 0 && (
                 <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
                   {diseaseReports.length}
+                  
                 </span>
               )}
             </button>
