@@ -6,11 +6,10 @@ import {
   MapPin, Sprout, Ruler, FlaskConical,
   Droplets, Plus, ArrowRight, ChevronRight,
   ArrowLeft, Layers, X, Calendar,
-  AlertTriangle, CheckCircle2, Clock,
+  AlertTriangle, CheckCircle2, 
   TrendingUp, Trash2, Image
 } from 'lucide-react';
-import FarmWeatherSummary from '../../components/FarmWeatherSummary';
-
+import WeatherWidget from '../../components/WeatherWidget';
 const STEPS = ['Crop Info', 'Location & Size', 'Schedule'];
 
 const FarmDetail = () => {
@@ -34,7 +33,7 @@ const FarmDetail = () => {
     plantingDate: '', harvestDate: '',
     img: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=400'
   });
-  const [cropFormError, setCropFormError] = useState('');
+
 
   // ─── ADD PLOT FORM ────────────────────────────────────────
   const [plotForm, setPlotForm] = useState({ name: '', size: '', status: 'Idle' });
@@ -379,13 +378,11 @@ const FarmDetail = () => {
         )}
 
         {/* ── WEATHER TAB ── */}
+                
         {activeTab === 'weather' && (
-          <FarmWeatherSummary
+          <WeatherWidget
             district={farm.district || farm.location}
-            crops={farmCrops}
-            farmId={farm.id}
-            farmName={farm.name}
-            existingCoords={
+            coords={
               farm.latitude && farm.longitude
                 ? { latitude: farm.latitude, longitude: farm.longitude }
                 : null
