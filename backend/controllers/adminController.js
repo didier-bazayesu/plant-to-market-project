@@ -120,3 +120,95 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+
+// ─── GET PLATFORM STATS ───────────────────────────────────────
+exports.getStats = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalFarmers,
+      totalFarms,
+      totalCrops,
+      totalActivities,
+      totalHarvests,
+      activeFarmers,
+      gpsAtFarm,
+      mapPin,
+      districtFallback,
+      districts,
+      cropBreakdown,
+      recentFarmers,
+    ] = await Promise.all([
+      db.User.count(),
+      db.User.count({ where: { role: 'farmer' } }),
+      db.Farm.count(),
+      db.Crop.count(),
+      db.Activity.count(),
+      db.Harvest.count(),
+
+      // Farmers who have at least one farm
+      db.Farmer.count({
+        include: [{
+          model: db.Farm,
+          as: 'farms',
+          required: true,
+        }]
+      }),
+
+      db.Farm.count({ where: { locationAccuracy: 'gps_at_farm' } }),
+      db.Farm.count({ where: { locationAccuracy: 'map_pin' } }),
+      db.Farm.count({ where: { locationAccuracy: 'district_fallback' } }),
+
+      db.Farm.findAll({
+        attributes: ['district'],
+        group: ['district'],
+        where: { district: { [db.Sequelize.Op.ne]: null } }
+      }),
+
+      db.Crop.findAll({
+        attributes: [
+          'cropType',
+          [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'count']
+        ],
+        group: ['cropType'],
+        order: [[db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'DESC']],
+        limit: 5,
+      }),
+
+      db.User.findAll({
+        where: { role: 'farmer' },
+        attributes: { exclude: ['password'] },
+        order: [['createdAt', 'DESC']],
+        limit: 5,
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalFarmers,
+        totalFarms,
+        totalCrops,
+        totalActivities,
+        totalHarvests,
+        activeFarmers,
+        districtsCount: districts.length,
+        locationAccuracy: {
+          gpsAtFarm,
+          mapPin,
+          districtFallback,
+        },
+        cropBreakdown: cropBreakdown.map(c => ({
+          cropType: c.cropType,
+          count: parseInt(c.get('count')),
+        })),
+        recentFarmers,
+      }
+    });
+  } catch (error) {
+    console.error('getStats error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
