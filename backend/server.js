@@ -11,45 +11,36 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Test route
 app.get('/', (req, res) => res.send('Plant-to-Market API is running'));
 
-// ✅ All routes with /api prefix
-app.use('/api/users',       require('./routes/userRoutes'));
-app.use('/api/farmers',     require('./routes/farmerRoutes'));
-app.use('/api/farms',       require('./routes/farmRoutes'));
-app.use('/api/crops',       require('./routes/cropRoutes'));
-app.use('/api/activities',  require('./routes/activityRoutes'));
-app.use('/api/harvests',    require('./routes/harvestRoutes'));
-app.use('/api/marketprices',require('./routes/marketPriceRoutes'));
-const adminRoutes = require('./routes/adminRoutes');
-console.log("Admin routes loaded:", !!adminRoutes); 
-app.use('/api/admin', adminRoutes);
+// ─── ROUTES ───────────────────────────────────────────────────
+app.use('/api/users',        require('./routes/userRoutes'));
+app.use('/api/farmers',      require('./routes/farmerRoutes'));
+app.use('/api/farms',        require('./routes/farmRoutes'));
+app.use('/api/farms',        require('./routes/farmLocationRoutes'));
+app.use('/api/crops',        require('./routes/cropRoutes'));
+app.use('/api/activities',   require('./routes/activityRoutes'));
+app.use('/api/harvests',     require('./routes/harvestRoutes'));
+app.use('/api/marketprices', require('./routes/marketPriceRoutes'));
+app.use('/api/admin',        require('./routes/adminRoutes'));
+app.use('/api',              require('./routes/weatherRoutes'));
 
-//weather routes 
-app.use('/api', require('./routes/weatherRoutes'));
-
-//weather location routes
- app.use('/api/farms', require('./routes/farmLocationRoutes'));
-
-
-
-// 404 handler
+// ─── 404 HANDLER ──────────────────────────────────────────────
 app.use((req, res, next) => {
   const error = new Error(`Route ${req.originalUrl} not found`);
   error.statusCode = 404;
   next(error);
 });
 
-// Error handler
+// ─── ERROR HANDLER ────────────────────────────────────────────
 app.use(errorHandler);
 
-// Start server
+// ─── START SERVER ─────────────────────────────────────────────
 app.listen(PORT, async () => {
   try {
     await db.sequelize.authenticate();
     console.log('✅ Database connection successful');
-    await db.sequelize.sync({ force: false }); // ✅ never drop tables
+    await db.sequelize.sync({ force: false });
     console.log('✅ Tables synced successfully!');
     console.log(`🚀 Server running on http://localhost:${PORT}`);
   } catch (err) {
