@@ -63,9 +63,6 @@ const router = createBrowserRouter(
         
       }>
 
-        <Route index element={<AdminDashboard />} />
-        <Route path="farmers" element={<Farmers />} />
-
          <Route index element={<AdminDashboard />} />
         <Route path="farmers" element={<Farmers />} />
         <Route path="farmers/:id" element={<AdminFarmerDetail />} />                             
