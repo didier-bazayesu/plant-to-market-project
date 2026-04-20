@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCrops } from '../../context/CropContext';
 import {
@@ -20,11 +21,32 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const navigate = useNavigate();
 
   // ─── FETCH ALL USERS ──────────────────────────────────────
   useEffect(() => {
     fetchUsers();
+     fetchStats();
   }, [token]);
+
+    //fetching the stats 
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) setStats(data.stats);
+      } catch (err) {
+        console.error('fetchStats error:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+     
 
   const fetchUsers = async () => {
     try {
@@ -86,11 +108,13 @@ const AdminDashboard = () => {
     .slice(0, 5);
 
   // ─── FILTERED USERS ───────────────────────────────────────
-  const filteredUsers = farmers.filter(u =>
-    u.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.district?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = search
+  ? farmers.filter(u =>
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.district?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase())
+    )
+  : farmers.slice(0, 5);
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20">
@@ -127,36 +151,134 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
 
-        {/* QUICK STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[
-            { label: 'Total Users', value: users.length, icon: Users, color: 'bg-blue-50 text-blue-600', border: 'border-blue-100' },
-            { label: 'Farmers', value: farmers.length, icon: CheckCircle2, color: 'bg-green-50 text-green-600', border: 'border-green-100' },
-            { label: 'Total Farms', value: totalFarms, icon: Layers, color: 'bg-amber-50 text-amber-600', border: 'border-amber-100' },
-            { label: 'Total Crops', value: totalCrops, icon: Sprout, color: 'bg-purple-50 text-purple-600', border: 'border-purple-100' },
-            { label: 'Districts', value: districts, icon: MapPin, color: 'bg-pink-50 text-pink-600', border: 'border-pink-100' },
-          ].map((stat) => (
-            <div key={stat.label} className={`bg-white rounded-3xl p-5 border shadow-sm ${stat.border}`}>
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${stat.color}`}>
-                <stat.icon size={18} />
+      {/* HERO BANNER */}
+      <div className="relative h-56 md:h-64 rounded-[2rem] overflow-hidden shadow-xl">
+        <img
+          src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=1200"
+          alt="Rwanda farmland"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-12">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck size={16} className="text-green-400" />
+            <span className="text-green-400 text-xs font-black uppercase tracking-widest">
+              Admin Control Panel
+            </span>
+          </div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-1">
+            Welcome back, {farmer?.name?.split(' ')[0] || 'Admin'}
+          </h2>
+          <p className="text-white/60 text-sm font-medium mb-6">
+            {new Date().toLocaleDateString('en-RW', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {' '}· Rwanda Smart Farm Platform
+          </p>
+
+          {/* Inline mini stats */}
+          <div className="flex items-center gap-6 flex-wrap">
+            {[
+              { label: 'Farmers',    value: stats?.totalFarmers  ?? '—' },
+              { label: 'Farms',      value: stats?.totalFarms    ?? '—' },
+              { label: 'Crops',      value: stats?.totalCrops    ?? '—' },
+              { label: 'Activities', value: stats?.totalActivities ?? '—' },
+            ].map(item => (
+              <div key={item.label} className="text-center">
+                <p className="text-xl font-black text-white">{item.value}</p>
+                <p className="text-xs text-white/50 font-bold">{item.label}</p>
               </div>
-              <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-400 font-bold mt-0.5">{stat.label}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        {/* Location accuracy pill — top right */}
+        {stats?.locationAccuracy && (
+          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2 text-right">
+            <p className="text-xs text-white/50 font-bold mb-1">Location Accuracy</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-green-400">
+                {stats.locationAccuracy.gpsAtFarm} GPS
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-xs font-black text-blue-400">
+                {stats.locationAccuracy.mapPin} Map
+              </span>
+              <span className="text-white/20">·</span>
+              <span className="text-xs font-black text-amber-400">
+                {stats.locationAccuracy.districtFallback} District
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* QUICK STATS */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: 'Total Users',  value: stats?.totalUsers     ?? '—', icon: Users,        color: 'bg-blue-50 text-blue-600',   border: 'border-blue-100'    },
+          { label: 'Farmers',      value: stats?.totalFarmers   ?? '—', icon: CheckCircle2, color: 'bg-green-50 text-green-600', border: 'border-green-100'   },
+          { label: 'Total Farms',  value: stats?.totalFarms     ?? '—', icon: Layers,       color: 'bg-amber-50 text-amber-600', border: 'border-amber-100'   },
+          { label: 'Total Crops',  value: stats?.totalCrops     ?? '—', icon: Sprout,       color: 'bg-purple-50 text-purple-600', border: 'border-purple-100'},
+          { label: 'Districts',    value: stats?.districtsCount ?? '—', icon: MapPin,       color: 'bg-pink-50 text-pink-600',   border: 'border-pink-100'    },
+        ].map((stat) => (
+          <div key={stat.label} className={`bg-white rounded-3xl p-5 border shadow-sm ${stat.border}`}>
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${stat.color}`}>
+              <stat.icon size={18} />
+            </div>
+            <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+            <p className="text-sm text-gray-400 font-bold mt-0.5">{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* MAIN COLUMN */}
+         
           <div className="lg:col-span-2 space-y-6">
 
-            {/* FARMERS TABLE */}
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                  <Users className="text-green-600" size={20} /> Registered Farmers
-                </h2>
+  {/* PLATFORM IMAGE CARD */}
+  <div className="relative h-44 rounded-[2rem] overflow-hidden shadow-lg">
+    <img
+      src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=1200"
+      alt="Rwanda farm"
+      className="w-full h-full object-cover"
+    />
+    <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+    <div className="absolute inset-0 flex flex-col justify-center px-8">
+      <p className="text-green-400 text-xs font-black uppercase tracking-widest mb-1">
+        Plant-to-Market Platform
+      </p>
+      <h3 className="text-xl font-black text-white mb-3">
+        Empowering Rwanda's Farmers
+      </h3>
+      <div className="flex items-center gap-6">
+        {[
+          { label: 'Active Farmers',   value: stats?.activeFarmers  ?? '—' },
+          { label: 'Farms Registered', value: stats?.totalFarms     ?? '—' },
+          { label: 'Crops Tracked',    value: stats?.totalCrops     ?? '—' },
+        ].map(item => (
+          <div key={item.label}>
+            <p className="text-xl font-black text-white">{item.value}</p>
+            <p className="text-xs text-white/50 font-bold">{item.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* FARMERS TABLE */}
+  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+    <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+          <Users className="text-green-600" size={20} /> Registered Farmers
+        </h2>
+        <p className="text-xs text-gray-400 font-medium mt-0.5">
+          {search ? 'Search results' : 'Last 5 registered'} · {stats?.totalFarmers ?? 0} total
+        </p>
+      </div>
+
+                {/* </h2>/sdffffffffffffffffffffffffff */}
                 <div className="relative">
                   <Search className="absolute left-3 top-3 text-gray-300" size={14} />
                   <input
@@ -268,12 +390,23 @@ const AdminDashboard = () => {
                       <p className="text-xs text-gray-400 font-medium mt-0.5">{selectedUser.email}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedUser(null)}
-                    className="p-2 hover:bg-gray-100 rounded-full"
-                  >
-                    <X size={18} className="text-gray-400" />
-                  </button>
+
+
+                 <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/admin/farmers/${selectedUser.id}`)}
+                      className="bg-green-50 text-green-600 px-4 py-2 rounded-xl font-black text-xs hover:bg-green-100 transition-all flex items-center gap-1"
+                    >
+                      Full Profile <ArrowRight size={12} />
+                    </button>
+                    <button
+                      onClick={() => setSelectedUser(null)}
+                      className="p-2 hover:bg-gray-100 rounded-full"
+                    >
+                      <X size={18} className="text-gray-400" />
+                    </button>
+                  </div>
+
                 </div>
 
                 {/* Farms */}
@@ -341,12 +474,13 @@ const AdminDashboard = () => {
               </h3>
               <div className="space-y-3">
                 {[
-                  { label: 'Total Farmers', value: farmers.length, positive: true },
-                  { label: 'Active Farmers', value: activeFarmers, positive: true },
-                  { label: 'Total Farms', value: totalFarms, positive: true },
-                  { label: 'Total Crops', value: totalCrops, positive: true },
-                  { label: 'Admin Users', value: admins.length, positive: true },
-                  { label: 'Districts Covered', value: districts, positive: true },
+                  { label: 'Total Farmers',     value: stats?.totalFarmers     ?? '—' },
+                  { label: 'Active Farmers',    value: stats?.activeFarmers    ?? '—' },
+                  { label: 'Total Farms',       value: stats?.totalFarms       ?? '—' },
+                  { label: 'Total Crops',       value: stats?.totalCrops       ?? '—' },
+                  { label: 'Total Activities',  value: stats?.totalActivities  ?? '—' },
+                  { label: 'Total Harvests',    value: stats?.totalHarvests    ?? '—' },
+                  { label: 'Districts Covered', value: stats?.districtsCount   ?? '—' },
                 ].map((item) => (
                   <div key={item.label} className="bg-white/10 rounded-2xl px-4 py-3 flex justify-between items-center">
                     <span className="text-xs text-gray-400 font-bold">{item.label}</span>
@@ -354,6 +488,25 @@ const AdminDashboard = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Location accuracy breakdown */}
+              {stats?.locationAccuracy && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-xs font-black text-gray-400 mb-3 uppercase tracking-widest">Location Accuracy</p>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'GPS at Farm',   value: stats.locationAccuracy.gpsAtFarm,       color: 'text-green-400' },
+                      { label: 'Map Pin',       value: stats.locationAccuracy.mapPin,           color: 'text-blue-400'  },
+                      { label: 'District Only', value: stats.locationAccuracy.districtFallback, color: 'text-amber-400' },
+                    ].map(item => (
+                      <div key={item.label} className="bg-white/10 rounded-2xl px-4 py-2 flex justify-between items-center">
+                        <span className="text-xs text-gray-400 font-bold">{item.label}</span>
+                        <span className={`text-sm font-black ${item.color}`}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* RECENT ACTIVITIES */}
@@ -392,6 +545,35 @@ const AdminDashboard = () => {
                 </div>
               )}
             </div>
+            {/* TOP CROPS */}
+            {stats?.cropBreakdown?.length > 0 && (
+              <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
+                <h3 className="text-base font-black text-gray-900 mb-5 flex items-center gap-2">
+                  <Sprout className="text-green-600" size={18} /> Top Crops
+                </h3>
+                <div className="space-y-3">
+                  {stats.cropBreakdown.map((crop, i) => (
+                    <div key={crop.cropType} className="flex items-center gap-3">
+                      <span className="text-xs font-black text-gray-400 w-4">{i + 1}</span>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-black text-gray-800 capitalize">
+                            {crop.cropType}
+                          </span>
+                          <span className="text-xs font-bold text-gray-400">{crop.count}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full transition-all duration-700"
+                            style={{ width: `${Math.round((crop.count / stats.totalCrops) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* MARKET PRICES */}
             <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
