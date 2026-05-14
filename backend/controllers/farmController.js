@@ -59,6 +59,7 @@ exports.getFarm = async (req, res) => {
 };
 
 // ─── CREATE FARM ──────────────────────────────────────────────
+
 exports.createFarm = async (req, res) => {
   try {
     const farmer = await db.Farmer.findOne({
@@ -72,7 +73,6 @@ exports.createFarm = async (req, res) => {
       });
     }
 
-    // ✅ Destructure coordinates out — don't spread them into Farm model
     const { latitude, longitude, locationAccuracy, ...farmData } = req.body;
 
     const farm = await db.Farm.create({
@@ -81,16 +81,16 @@ exports.createFarm = async (req, res) => {
       locationAccuracy: locationAccuracy || 'district_fallback',
     });
 
-    // ✅ Save coordinates to FarmLocation if provided
+    // ✅ create instead of upsert — new farm always has no FarmLocation yet
     if (latitude && longitude) {
-      await db.FarmLocation.upsert({
+      await db.FarmLocation.create({
         farmId: farm.id,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
       });
+      console.log(`✅ FarmLocation created for farm ${farm.id}`);
     }
 
-    // ✅ Return farm with gpsLocation so frontend mapFarm works correctly
     const farmWithLocation = await db.Farm.findByPk(farm.id, {
       include: [
         { model: db.FarmLocation, as: 'gpsLocation' }
@@ -105,18 +105,60 @@ exports.createFarm = async (req, res) => {
   }
 };
 
-// ─── UPDATE FARM ──────────────────────────────────────────────
 exports.updateFarm = async (req, res) => {
   try {
     const farm = await db.Farm.findByPk(req.params.id);
-    if (!farm) return res.status(404).json({ success: false, message: 'Farm not found' });
-    await farm.update(req.body);
-    res.json({ success: true, farm });
+    if (!farm) {
+      return res.status(404).json({ success: false, message: 'Farm not found' });
+    }
+
+    const { latitude, longitude, locationAccuracy, id, farmerId, ...safeData } = req.body;
+
+    // ✅ Update safe farm fields
+    await farm.update({
+      ...safeData,
+      ...(locationAccuracy && { locationAccuracy }),
+    });
+
+    // ✅ Update FarmLocation using findOne + update/create instead of upsert
+    if (latitude && longitude) {
+      const existingLocation = await db.FarmLocation.findOne({
+        where: { farmId: farm.id }
+      });
+
+      if (existingLocation) {
+        // Row exists — update it
+        await existingLocation.update({
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+        });
+        console.log(`✅ FarmLocation updated for farm ${farm.id}`);
+      } else {
+        // No row yet — create it
+        await db.FarmLocation.create({
+          farmId: farm.id,
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+        });
+        console.log(`✅ FarmLocation created for farm ${farm.id}`);
+      }
+    }
+
+    // ✅ Return updated farm with gpsLocation included
+    const updatedFarm = await db.Farm.findByPk(farm.id, {
+      include: [
+        { model: db.FarmLocation, as: 'gpsLocation' },
+        { model: db.Crop, as: 'crops' },
+      ]
+    });
+
+    res.json({ success: true, farm: updatedFarm });
+
   } catch (err) {
+    console.error('updateFarm error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 // ─── DELETE FARM ──────────────────────────────────────────────
 exports.deleteFarm = async (req, res) => {
   try {

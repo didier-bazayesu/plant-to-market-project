@@ -141,11 +141,17 @@ const Navbar = () => {
                     </span>
                   </div>
 
-                  <MenuLink icon={<User size={15} />} label="Profile" onClick={() => setIsMenuOpen(false)} />
-                  <MenuLink icon={<Settings size={15} />} label="Settings" onClick={() => setIsMenuOpen(false)} />
+                 <NavLink to='/profile'> <MenuLink icon={<User size={15} />} label="Profile" onClick={() => setIsMenuOpen(false)} /></NavLink>
+                 <NavLink to='/settings'>
+                    <MenuLink icon={<Settings size={15} />} label="Settings" onClick={() => setIsMenuOpen(false)} />
+                 </NavLink>
+                 <NavLink to='marketplace'>
                   <MenuLink icon={<ShoppingBag size={15} />} label="Marketplace" onClick={() => setIsMenuOpen(false)} />
+                 </NavLink>
                   {isAdmin && (
-                    <MenuLink icon={<BarChart2 size={15} />} label="Analytics" onClick={() => setIsMenuOpen(false)} />
+                    <NavLink to='/analytics'>
+                      <MenuLink icon={<BarChart2 size={15} />} label="Analytics" onClick={() => setIsMenuOpen(false)} />
+                    </NavLink>
                   )}
 
                   <div className="border-t border-gray-50 mt-1 pt-1">
