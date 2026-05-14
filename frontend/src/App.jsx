@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 
 import Layout from "./components/Layout";
-import HomeFarm from "./pages/HomeFarm";
+import LandingPage from './pages/LandingPage'
 import About from "./pages/About";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,13 +28,14 @@ import AdminRoute from './components/AdminRoute';
 import AdminFarmerDetail from "./pages/admin/FarmerDetail";
 import AdminFarmDetail from "./pages/admin/FarmDetail";
 import AdminCropDetail from "./pages/admin/CropDetail";
+import { HarvestProvider } from "./context/HarvestContext";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       {/* ── PUBLIC ── */}
       <Route path="/" element={<Layout />}>
-        <Route index element={<HomeFarm />} />
+        <Route index element={<LandingPage />} />
         <Route path="about" element={<About />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
@@ -78,7 +79,9 @@ function App() {
     <AuthProvider>
       <FarmProvider>
         <CropProvider>
-          <RouterProvider router={router} />
+          <HarvestProvider>
+            <RouterProvider router={router} />
+          </HarvestProvider>
         </CropProvider>
       </FarmProvider>
     </AuthProvider>
