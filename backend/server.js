@@ -14,6 +14,7 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => res.send('Plant-to-Market API is running'));
 
 // ─── ROUTES ───────────────────────────────────────────────────
+app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/users',        require('./routes/userRoutes'));
 app.use('/api/farmers',      require('./routes/farmerRoutes'));
 app.use('/api/farms',        require('./routes/farmRoutes'));
