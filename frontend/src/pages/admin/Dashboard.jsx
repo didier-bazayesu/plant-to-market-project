@@ -10,6 +10,7 @@ import {
   Eye, X
 } from 'lucide-react';
 import { marketPrices } from '../../data/mockData';
+import API_URL from '../../utilis/api';
 
 const AdminDashboard = () => {
   const { farmer, token } = useAuth();

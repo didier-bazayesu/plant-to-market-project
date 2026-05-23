@@ -13,6 +13,7 @@ function AlertIcon({ level }) {
   return <AlertTriangle size={16} />;
 }
 
+
 function AlertCard({ alert }) {
   const style = LEVEL_STYLES[alert.level] || LEVEL_STYLES.info;
   return (
