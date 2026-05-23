@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import API_URL from "../utilis/api";
+import usepublicData from "../hooks/usepublicData";
 
 const images = [
   "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=2070",
@@ -16,9 +16,7 @@ const images = [
 const LandingPage = () => {
   const { token } = useAuth();
   const [currentImg, setCurrentImg] = useState(0);
-  const [stats, setStats] = useState(null);
-  const [activities, setActivities] = useState([]);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const { stats, activities, loadingStats } = usepublicData();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -27,21 +25,8 @@ const LandingPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/public/stats`); // no token
-      const data = await res.json();
-      setStats(data.stats);
-    } catch (err) {
-      console.error("fetchStats error:", err);
-    } finally {
-      setLoadingStats(false);
-    }
-  };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

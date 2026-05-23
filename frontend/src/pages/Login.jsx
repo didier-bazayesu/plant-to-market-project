@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Sprout, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import usepublicData from '../hooks/usepublicData';
 
 const Login = () => {
   const { login } = useAuth();
@@ -10,8 +11,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const {stats, activities, loadingStats} = usepublicData(); //preload public data for faster dashboard load after login
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +39,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
       
-      {/* LEFT PANEL — hidden on mobile */}
+
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-600 to-green-800 p-16 flex-col justify-between relative overflow-hidden">
         <div className="absolute top-[-80px] right-[-80px] w-72 h-72 bg-white/10 rounded-full" />
         <div className="absolute bottom-[-60px] left-[-60px] w-64 h-64 bg-white/10 rounded-full" />
@@ -60,9 +61,9 @@ const Login = () => {
 
           <div className="mt-10 grid grid-cols-2 gap-4">
             {[
-              { label: 'Active Farmers', value: '2,400+' },
-              { label: 'Crops Tracked', value: '18,000+' },
-              { label: 'Districts', value: '30' },
+              { label: 'Active Farmers', value: loadingStats ? "..." : (stats?.totalFarmers ?? 10), },
+              { label: 'Crops Tracked', value: loadingStats ? "..." : (stats?.totalCrops   ?? `1000+`), },
+              { label: 'Districts', value: loadingStats ? "..." : (stats?.totalDistricts ?? 30), },
               { label: 'Market Price Updates', value: 'Daily' },
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 rounded-2xl p-4 border border-white/10">
@@ -78,11 +79,11 @@ const Login = () => {
         </p>
       </div>
 
-      {/* RIGHT PANEL — form */}
+     
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md ">
 
-          {/* Mobile logo */}
+         
           <div className="flex items-center gap-3 mb-10 lg:hidden">
             <div className="bg-green-100 p-2 rounded-2xl">
               <Sprout className="text-green-600" size={22} />
@@ -100,16 +101,6 @@ const Login = () => {
             </div>
           )}
 
-          {/* Hint box */}
-          <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl space-y-1">
-            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Test Credentials</p>
-            <p className="text-xs font-bold text-gray-600">
-              Farmer: <span className="text-gray-900">didierbazayesu@gmail.com / didier123</span>
-            </p>
-            <p className="text-xs font-bold text-gray-600">
-              Admin: <span className="text-gray-900">admin@farm.rw / admin123</span>
-            </p>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
