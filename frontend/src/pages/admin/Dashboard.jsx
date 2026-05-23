@@ -24,7 +24,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const navigate = useNavigate();
-  import API_URL from '../../utilis/api';
+ 
 
   // ─── FETCH ALL USERS ──────────────────────────────────────
   useEffect(() => {
