@@ -5,11 +5,12 @@ const db = require('../models');
 // ─── GET PUBLIC PLATFORM STATS ────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {
-    const [farmers, farms, crops, activities] = await Promise.all([
+    const [farmers, farms, crops, activities, districts] = await Promise.all([
       db.Farmer.count(),
       db.Farm.count(),
       db.Crop.count(),
       db.Activity.count(),
+      db.Farm.count({ col: 'district', distinct: true }),  // ← add this
     ]);
 
     res.json({
@@ -19,6 +20,7 @@ router.get('/stats', async (req, res) => {
         totalFarms: farms,
         totalCrops: crops,
         totalActivities: activities,
+        totalDistricts: districts,  // ← add this
       }
     });
   } catch (err) {
