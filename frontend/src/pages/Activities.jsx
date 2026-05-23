@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCrops } from '../context/CropContext';
+import API_URL from '../utilis/api';
 import { 
   Sprout, Droplets, TrendingUp, MapPin, 
   CloudRain, Plus, ArrowRight, Microscope,
@@ -37,7 +38,7 @@ const ActivityPage = () => {
 
   const fetchActivities = async () => {
     try {
-      const res = await fetch('/api/activities', {
+      const res = await fetch(`${API_URL}/api/activities`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -51,7 +52,7 @@ const ActivityPage = () => {
 
   const fetchMarketPrices = async () => {
     try {
-      const res = await fetch('/api/marketprices');
+      const res = await fetch(`${API_URL}/api/marketprices`);
       const data = await res.json();
       setMarketPrices(data);
     } catch (err) {
@@ -64,7 +65,7 @@ const ActivityPage = () => {
     if (!activityForm.cropId || !activityForm.notes) return;
     setSubmitting(true);
     try {
-      const res = await fetch('/api/activities', {
+      const res = await fetch(`${API_URL}/api/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

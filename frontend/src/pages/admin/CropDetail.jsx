@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../utilis/api';
 import {
   ArrowLeft, Sprout, Droplets, Leaf, Shield,
   Edit2, Trash2, X, ChevronRight, Plus,
@@ -47,8 +48,8 @@ const AdminCropDetail = () => {
   const fetchCrop = async () => {
     try {
       const [cropRes, actRes] = await Promise.all([
-        fetch(`/api/crops/${cropId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/activities?cropId=${cropId}`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_URL}/api/crops/${cropId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/activities?cropId=${cropId}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       const cropData = await cropRes.json();
       const actData = await actRes.json();
@@ -68,7 +69,7 @@ const AdminCropDetail = () => {
     if (!addForm.notes) return;
     setAddLoading(true);
     try {
-      const res = await fetch('/api/activities', {
+      const res = await fetch(`${API_URL}/api/activities`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...addForm, cropId: Number(cropId) })
@@ -87,7 +88,7 @@ const AdminCropDetail = () => {
   const handleUpdate = async () => {
     setEditLoading(true);
     try {
-      const res = await fetch(`/api/activities/${editActivity.id}`, {
+      const res = await fetch(`${API_URL}/api/activities/${editActivity.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(editForm)
@@ -105,7 +106,7 @@ const AdminCropDetail = () => {
   const handleDelete = async () => {
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/activities/${confirmDelete}`, {
+      const res = await fetch(`${API_URL}/api/activities/${confirmDelete}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import API_URL  from '../utilis/api';
 
 const FarmContext = createContext(null);
 
@@ -41,7 +42,7 @@ export const FarmProvider = ({ children }) => {
   // ─── FETCH ALL FARMS ──────────────────────────────────────
   const fetchFarms = async () => {
     try {
-      const res = await fetch('/api/farms', {
+      const res = await fetch(`${API_URL}/api/farms`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch farms');
@@ -56,8 +57,9 @@ export const FarmProvider = ({ children }) => {
 
   // ─── ADD FARM ─────────────────────────────────────────────
   const addFarm = async (newFarm) => {
+
   try {
-    const res = await fetch('/api/farms', {
+    const res = await fetch(`${API_URL}/api/farms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +108,7 @@ export const FarmProvider = ({ children }) => {
   // ─── UPDATE FARM ──────────────────────────────────────────
 const updateFarm = async (id, updates) => {
   try {
-    const res = await fetch(`/api/farms/${id}`, {
+    const res = await fetch(`${API_URL}/api/farms/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -137,10 +139,10 @@ const updateFarm = async (id, updates) => {
   // ─── DELETE FARM ──────────────────────────────────────────
   const deleteFarm = async (id) => {
     try {
-      await fetch(`/api/farms/${id}`, {
+      await fetch(`${API_URL}/api/farms/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
-      });
+      });   
       setFarms((prev) => prev.filter((f) => f.id !== id));
     } catch (err) {
       console.error('deleteFarm error:', err);

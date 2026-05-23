@@ -6,6 +6,7 @@ import {
   Edit2, Trash2, X, ChevronRight, Plus,
   CheckCircle2, Calendar, Layers
 } from 'lucide-react';
+import API_URL from '../../utilis/api';
 
 const CROP_STATUSES = ['planted', 'growing', 'harvested'];
 
@@ -36,7 +37,7 @@ const AdminFarmDetail = () => {
 
   const fetchFarm = async () => {
     try {
-      const res = await fetch(`/api/farms/${farmId}`, {
+      const res = await fetch(`${API_URL}/api/farms/${farmId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -55,7 +56,7 @@ const AdminFarmDetail = () => {
     if (!addCropForm.cropType || !addCropForm.plantingDate) return;
     setAddCropLoading(true);
     try {
-      const res = await fetch('/api/crops', {
+      const res = await fetch(`${API_URL}/api/crops`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...addCropForm, farmId: Number(farmId) })
@@ -74,7 +75,7 @@ const AdminFarmDetail = () => {
   const handleUpdateCrop = async () => {
     setEditCropLoading(true);
     try {
-      const res = await fetch(`/api/crops/${editCrop.id}`, {
+      const res = await fetch(`${API_URL}/api/crops/${editCrop.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(editCropForm)
@@ -92,7 +93,7 @@ const AdminFarmDetail = () => {
   const handleDelete = async () => {
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/crops/${confirmDelete.id}`, {
+      const res = await fetch(`${API_URL}/api/crops/${confirmDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

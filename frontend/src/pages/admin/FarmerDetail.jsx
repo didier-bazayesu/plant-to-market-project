@@ -9,6 +9,7 @@ import {
   Edit2, Trash2, X, ChevronRight, Plus,
   CheckCircle2
 } from 'lucide-react';
+import API_URL from '../../utilis/api';
 
 const RWANDA_DISTRICTS = [
   'Gasabo', 'Kicukiro', 'Nyarugenge',
@@ -55,7 +56,7 @@ const AdminFarmerDetail = () => {
 
   const fetchUser = async () => {
   try {
-    const res = await fetch(`/api/admin/users/${id}`, {
+    const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
@@ -77,7 +78,7 @@ const AdminFarmerDetail = () => {
   const handleUpdateUser = async () => {
     setEditUserLoading(true);
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(editUserForm)
@@ -99,7 +100,7 @@ const AdminFarmerDetail = () => {
   const handleUpdateFarm = async () => {
     setEditFarmLoading(true);
     try {
-      const res = await fetch(`/api/farms/${editFarm.id}`, {
+      const res = await fetch(`${API_URL}/api/farms/${editFarm.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(editFarmForm)
@@ -118,7 +119,7 @@ const AdminFarmerDetail = () => {
     setDeleteLoading(true);
     try {
       const { type, id: deleteId } = confirmDelete;
-      const url = type === 'farm' ? `/api/farms/${deleteId}` : `/api/admin/users/${deleteId}`;
+      const url = type === 'farm' ? `${API_URL}/api/farms/${deleteId}` : `${API_URL}/api/admin/users/${deleteId}`;
       const res = await fetch(url, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
