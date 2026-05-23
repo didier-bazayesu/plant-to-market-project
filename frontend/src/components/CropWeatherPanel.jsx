@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Info, CheckCircle, CloudRain, Thermometer, Droplets, Wind } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../utilis/api';
 
 const LEVEL_STYLES = {
   critical: { container: 'bg-red-50 border-red-200', icon: 'text-red-500', badge: 'bg-red-100 text-red-700', label: 'CRITICAL' },
@@ -85,7 +86,7 @@ export default function CropWeatherPanel({ cropId }) {
   useEffect(() => {
     if (!cropId || !token) return;
     setLoading(true);
-    fetch(`/api/crops/${cropId}/advice`, {
+    fetch(`${API_URL}/api/crops/${cropId}/advice`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

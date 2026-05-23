@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Droplets, Thermometer, Info } from 'lucide-react';
 
+
 const severityConfig = {
   good: {
     bg: 'bg-green-50 border-green-100',

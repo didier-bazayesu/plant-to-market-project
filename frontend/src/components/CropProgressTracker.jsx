@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sprout, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
+import API_URL from '../utilis/api';
 const STAGES = [
   { key: 'germination',      label: 'Germination', pct: 0   },
   { key: 'vegetative',       label: 'Vegetative',  pct: 15  },
@@ -64,7 +64,7 @@ export default function CropProgressTracker({ cropId }) {
   useEffect(() => {
     if (!cropId || !token) return;
     setLoading(true);
-    fetch(`/api/crops/${cropId}/calendar`, {
+    fetch(`${API_URL}/api/crops/${cropId}/calendar`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
