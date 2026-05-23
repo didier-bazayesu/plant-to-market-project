@@ -7,16 +7,21 @@ require('dotenv').config();
 const basename = path.basename(__filename);
 const db = {};
 
-// Initialize Sequelize connection
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
-    dialect: process.env.DB_DIALECT,
-    logging: false, // disable SQL logging for cleaner console
+    port: process.env.DB_PORT || 5432,
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false  // required for Neon.tech
+      }
+    }
   }
 );
 
