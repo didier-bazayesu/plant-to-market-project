@@ -198,7 +198,7 @@ function checkIrrigationRecommendation(forecast, climatology, requirements) {
 }
 
 async function getCropAdvice(crop, farm) {
-  const requirements = getCropRequirements(crop.cropType);
+  const requirements = getCropRequirements(crop.cropType.trim().toLowerCase());
 
   if (!requirements) {
     return {
