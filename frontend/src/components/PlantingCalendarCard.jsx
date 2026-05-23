@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../utilis/api';
 
 const SEASON_COLORS = {
   A: { bg: 'bg-green-50', border: 'border-green-200', badge: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
@@ -60,7 +61,7 @@ export default function PlantingCalendarCard({ cropId }) {
   useEffect(() => {
     if (!cropId || !token) return;
     setLoading(true);
-    fetch(`/api/crops/${cropId}/calendar`, {
+    fetch(`${API_URL}/api/crops/${cropId}/calendar`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
