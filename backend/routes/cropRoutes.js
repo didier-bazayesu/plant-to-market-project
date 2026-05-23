@@ -19,3 +19,5 @@ router.put('/:id', protect, updateCropValidation, validate, cropController.updat
 
 // DELETE /api/crops/:id
 router.delete('/:id', protect, cropController.deleteCrop);
+
+module.exports = router;
