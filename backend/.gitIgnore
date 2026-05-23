@@ -39,4 +39,4 @@ logs/
 *.mkv
 *.mp3
 *.wav
-*.flac
+*.flac.env
