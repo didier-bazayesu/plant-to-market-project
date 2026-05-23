@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCrops } from "../../context/CropContext";
 import { useFarms } from "../../context/FarmContext";
 import { useAuth } from "../../context/AuthContext";
+import API_URL from "../../utilis/api";
 
 import {
   ArrowLeft,
@@ -145,7 +146,7 @@ const CropDetail = () => {
   const fetchActivities = async () => {
     try {
       setLoadingActivities(true);
-      const res = await fetch(`/api/activities?cropId=${crop.id}`, {
+      const res = await fetch(`${API_URL}/api/activities?cropId=${crop.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch activities");
@@ -161,7 +162,7 @@ const CropDetail = () => {
   const fetchDiseaseReports = async () => {
     try {
       setLoadingDiseases(true);
-      const res = await fetch(`/api/diseases?cropId=${crop.id}`, {
+      const res = await fetch(`${API_URL}/api/diseases?cropId=${crop.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch disease reports");
@@ -199,7 +200,7 @@ const CropDetail = () => {
     setEditCropError("");
 
     try {
-      const res = await fetch(`/api/crops/${crop.id}`, {
+      const res = await fetch(`${API_URL}/api/crops/${crop.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -251,7 +252,7 @@ const CropDetail = () => {
     setActivityError("");
 
     try {
-      const res = await fetch("/api/activities", {
+      const res = await fetch(`${API_URL}/api/activities`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -296,7 +297,7 @@ const CropDetail = () => {
     setDiseaseError("");
 
     try {
-      const res = await fetch("/api/diseases", {
+      const res = await fetch(`${API_URL}/api/diseases`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

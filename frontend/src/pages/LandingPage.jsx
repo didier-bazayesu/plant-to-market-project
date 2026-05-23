@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../utilis/api";
 
 const images = [
   "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=2070",
@@ -28,7 +29,7 @@ const LandingPage = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch("/api/public/stats"); // no token
+      const res = await fetch(`${API_URL}/api/public/stats`); // no token
       const data = await res.json();
       setStats(data.stats);
     } catch (err) {

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import API_URL from '../utilis/api';
 
 const HarvestContext = createContext();
 
@@ -9,7 +10,7 @@ export const HarvestProvider = ({ children }) => {
 
   const getHarvestsByCrop = useCallback(async (cropId) => {
     try {
-      const res = await fetch(`/api/harvests?cropId=${cropId}`, {
+      const res = await fetch(`${API_URL}/api/harvests?cropId=${cropId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -21,7 +22,7 @@ export const HarvestProvider = ({ children }) => {
   }, [token]);
 
   const addHarvest = useCallback(async (harvestData) => {
-    const res = await fetch('/api/harvests', {
+    const res = await fetch(`${API_URL}/api/harvests`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

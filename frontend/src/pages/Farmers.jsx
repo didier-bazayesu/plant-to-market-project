@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../utilis/api';
 import {
   Users, MapPin, Search, Filter,
   ChevronRight, Phone, Mail, Sprout,
@@ -24,7 +25,7 @@ const Farmers = () => {
   useEffect(() => {
     const fetchFarmers = async () => {
       try {
-        const res = await fetch('/api/farmers', {
+        const res = await fetch(`${API_URL}/api/farmers`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch farmers');

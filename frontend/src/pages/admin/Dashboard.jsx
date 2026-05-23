@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const navigate = useNavigate();
+ 
 
   // ─── FETCH ALL USERS ──────────────────────────────────────
   useEffect(() => {
@@ -35,7 +36,7 @@ const AdminDashboard = () => {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/admin/stats', {
+        const res = await fetch(`${API_URL}/api/admin/stats`                      , {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -50,7 +51,7 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -66,7 +67,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (id) => {
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

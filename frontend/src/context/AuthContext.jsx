@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import API_URL from "../utilis/api"
 
 const AuthContext = createContext(null);
 
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const res = await fetch('/api/users/me', {
+      const res = await fetch(`${API_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return false;
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     // 1. Try real backend
     try {
-      const res = await fetch('/api/users/login', {
+      const res = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     // 1. Try real backend
     try {
-      const res = await fetch('/api/users/register', {
+      const res = await fetch(`${API_URL}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

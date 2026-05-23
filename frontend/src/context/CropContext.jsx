@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import API_URL  from '../utilis/api';
 
 const CropContext = createContext(null);
 
@@ -37,7 +38,7 @@ export const CropProvider = ({ children }) => {
   // ─── FETCH ALL CROPS ──────────────────────────────────────
   const fetchCrops = async () => {
     try {
-      const res = await fetch('/api/crops', {
+      const res = await fetch(`${API_URL}/api/crops`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch crops');
@@ -63,7 +64,7 @@ export const CropProvider = ({ children }) => {
     console.log('addCrop payload:', payload); // ✅ inside function now
 
     try {
-      const res = await fetch('/api/crops', {
+      const res = await fetch(`${API_URL}/api/crops`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export const CropProvider = ({ children }) => {
   // ─── UPDATE CROP ──────────────────────────────────────────
   const updateCrop = async (id, updates) => {
     try {
-      await fetch(`/api/crops/${id}`, {
+      await fetch(`${API_URL}/api/crops/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ export const CropProvider = ({ children }) => {
   // ─── DELETE CROP ──────────────────────────────────────────
   const deleteCrop = async (id) => {
     try {
-      await fetch(`/api/crops/${id}`, {
+      await fetch(`${API_URL}/api/crops/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
