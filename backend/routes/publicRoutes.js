@@ -20,7 +20,7 @@ router.get('/stats', async (req, res) => {
         totalFarms: farms,
         totalCrops: crops,
         totalActivities: activities,
-        totalDistricts: districts,  // ← add this
+        totalDistricts: districts,  
       }
     });
   } catch (err) {

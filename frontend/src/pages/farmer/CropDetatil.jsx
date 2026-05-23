@@ -125,6 +125,7 @@ const CropDetail = () => {
   });
 
   //harvest state
+  const { addHarvest, getHarvestsByCrop } = useHarvests();
   const [showHarvestForm, setShowHarvestForm] = useState(false);
   const [harvests, setHarvests] = useState([]);
 
@@ -138,7 +139,6 @@ const CropDetail = () => {
   useEffect(() => {
     if (token && crop) {
       fetchActivities();
-      fetchDiseaseReports();
       fetchHarvest();
     }
   }, [token, crop]);
@@ -159,22 +159,22 @@ const CropDetail = () => {
     }
   };
 
-  const fetchDiseaseReports = async () => {
-    try {
-      setLoadingDiseases(true);
-      const res = await fetch(`${API_URL}/api/diseases?cropId=${crop.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch disease reports");
-      const data = await res.json();
-      setDiseaseReports(data.diseases || []);
-    } catch (err) {
-      console.error("fetchDiseaseReports error:", err);
-      setDiseaseReports([]);
-    } finally {
-      setLoadingDiseases(false);
-    }
-  };
+  // const fetchDiseaseReports = async () => {
+  //   try {
+  //     setLoadingDiseases(true);
+  //     const res = await fetch(`${API_URL}/api/diseases?cropId=${crop.id}`, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     if (!res.ok) throw new Error("Failed to fetch disease reports");
+  //     const data = await res.json();
+  //     setDiseaseReports(data.diseases || []);
+  //   } catch (err) {
+  //     console.error("fetchDiseaseReports error:", err);
+  //     setDiseaseReports([]);
+  //   } finally {
+  //     setLoadingDiseases(false);
+  //   }
+  // };
 
   // ─── EDIT CROP HANDLERS ───────────────────────────────────
   const handleEditClick = () => {
@@ -291,64 +291,64 @@ const CropDetail = () => {
   };
 
   // ─── DISEASE SUBMIT ──────────────────────────────────────
-  const handleDiseaseSubmit = async () => {
-    if (!diseaseForm.disease || !diseaseForm.symptoms) return;
-    setSubmittingDisease(true);
-    setDiseaseError("");
+  // const handleDiseaseSubmit = async () => {
+  //   if (!diseaseForm.disease || !diseaseForm.symptoms) return;
+  //   setSubmittingDisease(true);
+  //   setDiseaseError("");
 
-    try {
-      const res = await fetch(`${API_URL}/api/diseases`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          cropId: crop.id,
-          disease: diseaseForm.disease,
-          severity: diseaseForm.severity,
-          affectedArea: diseaseForm.affectedArea,
-          symptoms: diseaseForm.symptoms,
-          treatment: diseaseForm.treatment,
-          notes: diseaseForm.notes,
-          date: new Date().toISOString().split("T")[0],
-        }),
-      });
+  //   try {
+  //     const res = await fetch(`${API_URL}/api/diseases`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //       body: JSON.stringify({
+  //         cropId: crop.id,
+  //         disease: diseaseForm.disease,
+  //         severity: diseaseForm.severity,
+  //         affectedArea: diseaseForm.affectedArea,
+  //         symptoms: diseaseForm.symptoms,
+  //         treatment: diseaseForm.treatment,
+  //         notes: diseaseForm.notes,
+  //         date: new Date().toISOString().split("T")[0],
+  //       }),
+  //     });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to submit disease report");
-      }
+  //     if (!res.ok) {
+  //       const errorData = await res.json();
+  //       throw new Error(errorData.message || "Failed to submit disease report");
+  //     }
 
-      await fetchDiseaseReports();
+  //     await fetchDiseaseReports();
 
-      if (
-        diseaseForm.severity === "High" ||
-        diseaseForm.severity === "Critical"
-      ) {
-        await updateCrop(crop.id, { health: "At Risk" });
-      }
+  //     if (
+  //       diseaseForm.severity === "High" ||
+  //       diseaseForm.severity === "Critical"
+  //     ) {
+  //       await updateCrop(crop.id, { health: "At Risk" });
+  //     }
 
-      setDiseaseSuccess(true);
-      setTimeout(() => {
-        setDiseaseSuccess(false);
-        setShowDiseaseForm(false);
-        setDiseaseForm({
-          disease: "",
-          severity: "Low",
-          affectedArea: "",
-          symptoms: "",
-          treatment: "",
-          notes: "",
-        });
-      }, 1500);
-    } catch (err) {
-      console.error("handleDiseaseSubmit error:", err);
-      setDiseaseError(err.message);
-    } finally {
-      setSubmittingDisease(false);
-    }
-  };
+  //     setDiseaseSuccess(true);
+  //     setTimeout(() => {
+  //       setDiseaseSuccess(false);
+  //       setShowDiseaseForm(false);
+  //       setDiseaseForm({
+  //         disease: "",
+  //         severity: "Low",
+  //         affectedArea: "",
+  //         symptoms: "",
+  //         treatment: "",
+  //         notes: "",
+  //       });
+  //     }, 1500);
+  //   } catch (err) {
+  //     console.error("handleDiseaseSubmit error:", err);
+  //     setDiseaseError(err.message);
+  //   } finally {
+  //     setSubmittingDisease(false);
+  //   }
+  // };
 
   const handleDeleteCrop = async () => {
     try {
@@ -803,7 +803,6 @@ const CropDetail = () => {
             )}
           </div>
         )}
-
         {/* ── DISEASES TAB ── */}
         {activeTab === "diseases" && (
           <div className="space-y-4">
@@ -811,88 +810,25 @@ const CropDetail = () => {
               <h3 className="text-lg font-black text-gray-900">
                 Disease Reports
               </h3>
-              <button
-                onClick={() => setShowDiseaseForm(true)}
-                className="bg-red-500 text-white px-4 py-2 rounded-xl font-black text-sm hover:bg-red-600 transition-all flex items-center gap-1.5"
-              >
-                <Plus size={14} /> Report Disease
-              </button>
             </div>
 
-            {loadingDiseases ? (
-              <div className="bg-white rounded-[2rem] p-10 text-center border border-gray-100">
-                <Loader2
-                  size={32}
-                  className="text-green-600 animate-spin mx-auto"
-                />
+            <div className="bg-white rounded-[2rem] p-14 text-center border border-gray-100 shadow-sm">
+              <div className="w-16 h-16 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={28} className="text-amber-400" />
               </div>
-            ) : diseaseReports.length === 0 ? (
-              <div className="bg-white rounded-[2rem] p-14 text-center border border-gray-100 shadow-sm">
-                <CheckCircle2
-                  size={40}
-                  className="text-green-200 mx-auto mb-4"
-                />
-                <p className="font-black text-gray-400 text-lg">
-                  No diseases reported
-                </p>
-                <p className="text-sm text-gray-300 font-medium mt-1">
-                  Your crop appears healthy.
+              <p className="font-black text-gray-700 text-lg">
+                Disease Detection Coming Soon
+              </p>
+              <p className="text-sm text-gray-400 font-medium mt-2 max-w-xs mx-auto">
+                We're building AI-powered disease detection for Rwanda crops.
+                You'll be able to upload a photo and get an instant diagnosis.
+              </p>
+              <div className="mt-4 px-4 py-2 bg-amber-50 border border-amber-100 rounded-2xl inline-block">
+                <p className="text-xs font-black text-amber-500 uppercase tracking-widest">
+                  🚧 Phase 3 Feature
                 </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {diseaseReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="bg-white rounded-[2rem] border border-red-100 shadow-sm p-6"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-black text-gray-900">
-                          {report.disease}
-                        </h4>
-                        <p className="text-sm text-gray-400 font-bold">
-                          {report.date}
-                        </p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${
-                          report.severity === "Critical"
-                            ? "bg-red-100 text-red-600 border-red-200"
-                            : report.severity === "High"
-                              ? "bg-orange-50 text-orange-600 border-orange-100"
-                              : report.severity === "Medium"
-                                ? "bg-amber-50 text-amber-600 border-amber-100"
-                                : "bg-yellow-50 text-yellow-600 border-yellow-100"
-                        }`}
-                      >
-                        {report.severity}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-red-50 rounded-2xl p-4">
-                        <p className="text-xs font-black uppercase text-red-500 tracking-widest mb-2">
-                          Symptoms
-                        </p>
-                        <p className="text-sm font-medium text-gray-700">
-                          {report.symptoms}
-                        </p>
-                      </div>
-                      {report.treatment && (
-                        <div className="bg-green-50 rounded-2xl p-4">
-                          <p className="text-xs font-black uppercase text-green-600 tracking-widest mb-2">
-                            Treatment
-                          </p>
-                          <p className="text-sm font-medium text-gray-700">
-                            {report.treatment}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1336,7 +1272,7 @@ const CropDetail = () => {
 
               <div className="px-8 py-5 border-t border-gray-100">
                 <button
-                  onClick={handleDiseaseSubmit}
+                 
                   disabled={
                     !diseaseForm.disease ||
                     !diseaseForm.symptoms ||
